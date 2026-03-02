@@ -1,0 +1,2 @@
+sft-1-whole-set/model.safetensors !text !filter !merge !diff
+sft-4/model.safetensors !text !filter !merge !diff
