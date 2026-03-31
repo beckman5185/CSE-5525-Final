@@ -208,3 +208,4 @@ marimo/_lsp/
 __marimo__/
 sft-1-whole-set/model.safetensors
 sft-4/model.safetensors
+*.safetensors
