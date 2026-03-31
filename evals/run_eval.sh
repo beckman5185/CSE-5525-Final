@@ -29,7 +29,7 @@ dataset_name=(
     "xstest::default"
 
 )
-model_path=/users/PAS2526/carterglazer/glazer77/testFinal/sft-1-whole-set
+model_path=path/sft-1-whole-set
 
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."
