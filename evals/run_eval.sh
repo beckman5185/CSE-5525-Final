@@ -3,10 +3,10 @@
 #This part is need for OSC users
 export CC=gcc
 export CXX=g++
-export TRITON_CACHE_DIR=/fs/scratch/xxxx/${USER}/triton_cache
+export TRITON_CACHE_DIR=/fs/scratch/PAS3272/${USER}/triton_cache
 
 
-export UV_CACHE_DIR=/fs/scratch/xxxx/${USER}/.cache/uv  #control your uv caches
+export UV_CACHE_DIR=/fs/scratch/PAS3272/${USER}/.cache/uv  #control your uv caches
 
 # Dummy key to prevent import error in safety-eval (WildGuard doesn't actually use it)
 export OPENAI_API_KEY="sk-dummy-not-used"
@@ -25,12 +25,11 @@ dataset_name=(
     "gsm8k"
     "mbpp"
     "ifeval"
-    "xstest"
     "harmbench::default"
     "xstest::default"
 
 )
-model_path=allenai/OLMo-2-0425-1B-SFT
+model_path=/users/PAS2526/carterglazer/glazer77/testFinal/sft-1-whole-set
 
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."
