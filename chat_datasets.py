@@ -61,15 +61,14 @@ class TrainBuilder(ChatDatasetBuilder):
         train_on_what = (
             TrainOnWhat(self.common_config.train_on_what)
             if self.common_config.train_on_what
-            else TrainOnWhat.LAST_ASSISTANT_MESSAGE
+            else TrainOnWhat.ALL_ASSISTANT_MESSAGES
         )
 
         # take the last 1000 as test, the rest as train
         def map_fn(row: dict) -> tinker.Datum:
-            datum = conversation_to_datum(
+            return conversation_to_datum(
                 row["messages"], self.renderer, self.common_config.max_length, train_on_what
             )
-            return datum
 
         return SupervisedDatasetFromHFDataset(
             train_ds, batch_size=self.common_config.batch_size, map_fn=map_fn

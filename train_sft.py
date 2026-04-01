@@ -8,6 +8,7 @@ from tinker_cookbook import cli_utils, checkpoint_utils
 from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 from datetime import datetime
 from tinker_cookbook.supervised.common import compute_mean_nll
+from tinker_cookbook.display import colorize_example
 from tinker_cookbook import model_info
 from tqdm import tqdm
 import logging
@@ -18,6 +19,7 @@ import chz
 from chat_datasets import TrainBuilder
 from train import CLIConfig
 import tinker
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -34,26 +36,20 @@ wandb.init(
 )
 
 class SFTTrainer:
-    def __init__(self, model, train_dataset, val_dataset, training_args, log_path, checkpoint_path=None):
+    def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args, log_path):
         # Argument initializations for trainer class
         self.model = model
+        self.tokenizer = tokenizer
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.training_args = training_args
         self.log_path = log_path
+        self.logged_weighted_example = False
 
         service_client = tinker.ServiceClient(base_url=training_args.base_url)
         self.training_client = service_client.create_lora_training_client(self.model)
 
-        # Resume via TrainingClient API when a checkpoint path is provided.
-        # Not sure if this works
-        Path(log_path).mkdir(parents=True, exist_ok=True)
-
-        if checkpoint_path:
-            logger.info(f"Resuming from checkpoint: {checkpoint_path}")
-            self.training_client.load_state_with_optimizer(checkpoint_path).result()
-        else:
-            logger.info("Starting a fresh LoRA training client")
+        logger.info("Starting a fresh LoRA training client")
 
     def train(self):
         num_batches = len(self.train_dataset)
@@ -83,10 +79,16 @@ class SFTTrainer:
             for batch_idx in range(num_batches):
                 # Sets a metrics map to log metrics at each step
                 metrics = {}
-                # Uses get batch function to convert batch to proper format for training client
-                batch = self.train_dataset.get_batch(batch_idx)
                 step = epoch * num_batches + batch_idx
+                batch = self.train_dataset.get_batch(batch_idx)
 
+                # Log a weighted example preview before training starts (only once)
+                if not self.logged_weighted_example and batch:
+                    logger.info("Weighted example preview:\n%s", colorize_example(batch[0], self.tokenizer))
+                    logger.info("Weights: %s", batch[0].loss_fn_inputs["weights"].tolist())
+                    self.logged_weighted_example = True
+
+                # Terminate the loop if we've reached the max steps
                 if max_steps is not None and step >= max_steps:
                     logger.info(f"Reached max_steps={max_steps}. Stopping training loop.")
                     stop_training = True
@@ -102,7 +104,6 @@ class SFTTrainer:
                         kind="both",
                     )
 
-                # TODO Check to make sure this calculation is right - I just have something random here to test
                 # Code based on https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/sl_loop.py
                 progress = step / max(total_steps - 1, 1)
                 lr = self.training_args.learning_rate * 0.5 * (1.0 + math.cos(math.pi * progress))
@@ -111,6 +112,7 @@ class SFTTrainer:
                 # Calls the pre cooked forward and backward pass with optim step
                 fwd_bwd = self.training_client.forward_backward(batch, loss_fn="cross_entropy")
                 fwd_bwd_results = fwd_bwd.result()  # Wait for forward and backward to complete before stepping the optimizer
+
                 optim = self.training_client.optim_step(adam_params)
                 metrics.update(optim.result().metrics)
 
@@ -181,19 +183,8 @@ def main(cli_config: CLIConfig):
 
     cli_utils.check_log_dir(log_path, behavior_if_exists=cli_config.behavior_if_log_dir_exists)
 
-    # Unify resume handling in one branch: if the run directory already has checkpoints and no explicit
-    # checkpoint path was provided, use this run directory as the checkpoint source.
-    checkpoint_path = cli_config.load_checkpoint_path
-    if checkpoint_path and not checkpoint_path.startswith("tinker://") and Path(checkpoint_path).exists():
-        resume_info = checkpoint_utils.get_last_checkpoint(checkpoint_path)
-        if resume_info is not None:
-            checkpoint_path = resume_info.state_path
-
-    if not checkpoint_path and (Path(log_path) / "checkpoints.jsonl").exists():
-        resume_info = checkpoint_utils.get_last_checkpoint(log_path)
-        if resume_info is not None:
-            checkpoint_path = resume_info.state_path
-
+    
+    # Log the information about the run for debugging
     logger.info(
         "Run config: "
         f"model={cli_config.model_name}, dataset={cli_config.dataset}, "
@@ -201,12 +192,9 @@ def main(cli_config: CLIConfig):
         f"num_epochs={cli_config.num_epochs}, max_steps={cli_config.max_steps}, "
         f"save_every={cli_config.save_every}, log_path={log_path}"
     )
-    if checkpoint_path:
-        logger.info(f"Resolved resume checkpoint: {checkpoint_path}")
-    else:
-        logger.info("No checkpoint found for resume; training from scratch")
 
     renderer_name = model_info.get_recommended_renderer_name(cli_config.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(cli_config.model_name)
     
     # Build the dataset builder config to pass to the TrainBuilder, which will create the train and val datasets (changed from Audrey's)
     # It wasn't working from your code so I think I'm just getting confused on how to use it
@@ -224,21 +212,10 @@ def main(cli_config: CLIConfig):
     train_dataset, val_dataset = dataset_builder()
 
     # Pass CLIConfig as training_args so fields like num_epochs are available in the trainer loop.
-    trainer = SFTTrainer(model, train_dataset, val_dataset, cli_config, log_path, checkpoint_path=checkpoint_path)
+    trainer = SFTTrainer(model, tokenizer, train_dataset, val_dataset, cli_config, log_path)
     trainer.train()
 
     #args - batch size, learning rate, num epochs, 
-
-    #base_url: str | None = None
-    #log_path: str = "/tmp/tinker-examples/sl-loop"
-    #model_name: str = "meta-llama/Llama-3.1-8B"
-    #batch_size: int = 128
-    #learning_rate: float = 1e-4
-    #max_length: int = 32768
-    #train_on_what: renderers.TrainOnWhat = renderers.TrainOnWhat.ALL_ASSISTANT_MESSAGES
-    #lora_rank: int = 32
-    #save_every: int = 20  # 0 = disabled
-    #ttl_seconds: int | None = 604800  # 7 days
 
     #dataset = SupervisedDatasetFromHFDataset(dataset_file, batch_size)
 
