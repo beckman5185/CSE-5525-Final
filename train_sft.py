@@ -47,12 +47,11 @@ class SFTTrainer:
         service_client = tinker.ServiceClient(base_url=training_args.base_url)
         self.training_client = service_client.create_lora_training_client(self.model)
 
-        logger.info("Starting a fresh LoRA training client")
-
     def train(self):
         num_batches = len(self.train_dataset)
         planned_total_steps = self.training_args.num_epochs * num_batches
         max_steps = self.training_args.max_steps
+        # Adjust steps based on command line arguments
         if max_steps is not None:
             total_steps = max(1, min(planned_total_steps, max_steps))
         else:
@@ -131,6 +130,7 @@ class SFTTrainer:
                     }
                 )
 
+                # Log metrics for wandb, DEBUG
                 wandb.log({
                     "train/nll": nll,
                     "learning_rate": lr,
