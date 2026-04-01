@@ -35,15 +35,18 @@ def _log_conversation_preview(messages: list[dict], example_idx: int) -> None:
         role = message.get("role", "unknown")
         content = str(message.get("content", ""))
         if role in {"user", "assistant"}:
-            logger.info(f"  {role}: {_shorten_text(content)}")
+            logger.info(f"  {role}: {content}")
 
 
 @chz.chz
 class TrainBuilder(ChatDatasetBuilder):
     def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset]:
-        dataset = datasets.load_dataset("allenai/tulu-3-sft-olmo-2-mixture-0225")
+        dataset = datasets.load_dataset(
+            "allenai/tulu-3-sft-olmo-2-mixture-0225",
+            split="train",
+            streaming=False  # explicit — forces full download
+        )
         dataset = cast(datasets.DatasetDict, dataset)
-        dataset = dataset["train"]
         dataset = dataset.shuffle(seed=0)
         val_ds = dataset.take(1024)
         train_ds = dataset.skip(1024)
@@ -63,9 +66,10 @@ class TrainBuilder(ChatDatasetBuilder):
 
         # take the last 1000 as test, the rest as train
         def map_fn(row: dict) -> tinker.Datum:
-            return conversation_to_datum(
+            datum = conversation_to_datum(
                 row["messages"], self.renderer, self.common_config.max_length, train_on_what
             )
+            return datum
 
         return SupervisedDatasetFromHFDataset(
             train_ds, batch_size=self.common_config.batch_size, map_fn=map_fn

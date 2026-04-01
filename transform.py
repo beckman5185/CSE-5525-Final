@@ -3,7 +3,7 @@ from peft import PeftModel
 
 # Set paths
 base_model_path = "meta-llama/Llama-3.2-1B"
-adapter_path = "b36579c0-73bb-5eea-8d67-69502f4f264e:train:0_sampler_weights_002640"
+adapter_path = "b36579c0-73bb-5eea-8d67-69502f4f264e:train:0_sampler_weights_002640" 
 output_dir = "sft-4"
 
 # Load base model and tokenizer
