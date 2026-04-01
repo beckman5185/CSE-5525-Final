@@ -1,7 +1,6 @@
 """
 This module implements the SFTTrainer class for training your model using supervised fine-tuning (SFT).
 """
-# TODO: Check to make sure all imports are used
 import math
 
 from tinker_cookbook import cli_utils, checkpoint_utils
@@ -26,8 +25,7 @@ logger = logging.getLogger(__name__)
 import wandb
 
 wandb.init(
-    project="your-project-name",
-    name="run-name",  # optional but helpful
+    project="test-project",
     config={
         "learning_rate": 1e-5,
         "batch_size": 248,
@@ -63,6 +61,7 @@ class SFTTrainer:
         # Initialize progress bar, aiming to implement similar to what they have in train.py from the cookbook
         progress_bar = tqdm(total=total_steps, desc="Training", unit="batch")
 
+        # Debugging statements for epochs
         logger.info(
             f"Training for {num_batches} batches x {self.training_args.num_epochs} epochs"
             + (f" (capped at {max_steps} steps)" if max_steps is not None else "")
@@ -82,7 +81,7 @@ class SFTTrainer:
                 step = epoch * num_batches + batch_idx
                 batch = self.train_dataset.get_batch(batch_idx)
 
-                # Log a weighted example preview before training starts (only once)
+                # DEBUG - check to see if the statement is being weighted right
                 if not self.logged_weighted_example and batch:
                     logger.info("Weighted example preview:\n%s", colorize_example(batch[0], self.tokenizer))
                     logger.info("Weights: %s", batch[0].loss_fn_inputs["weights"].tolist())
@@ -111,7 +110,8 @@ class SFTTrainer:
 
                 # Calls the pre cooked forward and backward pass with optim step
                 fwd_bwd = self.training_client.forward_backward(batch, loss_fn="cross_entropy")
-                fwd_bwd_results = fwd_bwd.result()  # Wait for forward and backward to complete before stepping the optimizer
+                # Fix for potential async issues, may not be necessary
+                fwd_bwd_results = fwd_bwd.result()  
 
                 optim = self.training_client.optim_step(adam_params)
                 metrics.update(optim.result().metrics)
@@ -144,8 +144,7 @@ class SFTTrainer:
             if stop_training:
                 break
 
-
-        # Saves the final checkpoint at the very end (does this need to be best? Or should I leave it as is)
+        # Saves the final checkpoint at the very end (does this need to be best? Or should I leave it as is) TODO
         checkpoint_utils.save_checkpoint(
                 training_client=self.training_client,
                 name="final",
@@ -165,8 +164,6 @@ def main(cli_config: CLIConfig):
 
     #from sl_loop.py
     model = "meta-llama/Llama-3.2-1B"
-
-    #add data preprocessing - ?
 
     # Get logs stuff
     # build full config

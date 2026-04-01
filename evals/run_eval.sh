@@ -29,27 +29,13 @@ dataset_name=(
     "xstest::default"
 
 )
-model_path=path/sft-4
+model_path=/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-4
 
 for dataset in "${dataset_name[@]}"; do
-    safe_dataset="${dataset//::/_}"
-    safe_dataset="${safe_dataset//:/_}"
-    
     echo "Evaluating on ${dataset}..."
 
     uv run olmes \
         --model ${model_path} \
         --task ${dataset} \
-        --output-dir $model_path-eval-${safe_dataset}
-
-    output_dir="$model_path-eval-${safe_dataset}"
-    if [ -d "$output_dir" ]; then
-        find "$output_dir" -depth -name '*:*' | while read -r filepath; do
-            dir=$(dirname "$filepath")
-            base=$(basename "$filepath")
-            safe_base="${base//::/_}"
-            safe_base="${safe_base//:/_}"
-            mv "$filepath" "$dir/$safe_base"
-        done
-    fi
+        --output-dir $model_path-eval-${dataset} 
 done
