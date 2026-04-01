@@ -1,0 +1,193 @@
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[final]{acl}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{booktabs}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+
+% This is also not strictly necessary, and may be commented out.
+% However, it will improve the aesthetics of text in
+% the typewriter font.
+\usepackage{inconsolata}
+
+%Including images in your LaTeX document requires adding
+%additional package(s)
+\usepackage{graphicx}
+
+\usepackage{float}
+
+\title{CSE 5525 Project Proposal}
+
+\author{
+  \textbf{Kathleen Duffey},
+  \textbf{Carter Glazer},
+  \textbf{Audrey Beckman}}
+  
+\begin{document}
+\maketitle
+
+\section{Main Goals}
+LLMs are becoming increasingly important for the modern computer scientist to be able to understand and use. To do this, it is imperative that we know how these models train and work internally - which is the aim of these assignments. Our goal for this project is to build a correct training pipeline by using a \~{}1B parameter open LLM provided on Tinker.
+
+Aside from our main goal, we also chose to add Data filtering and quality analysis to our explorations. Oftentimes when training models, the quality of the model corresponds to the quality of the data it is trained on. In order to mitigate issues with data and understand the true impact of data on the model, we will compare the ability of filtered vs unfiltered data and compare the changes between these two approaches.
+
+Additionally, we want to take a look at how the model performs before and after alignment with our second exploration. We want to be able to observe if the model gets better or worse at certain tasks like length, creativity, etc once it's been aligned. This will allow us dig deeper into how these models work in conjunction with the training pipeline, and what changes during the process.
+
+\section{NLP Tasks Addressed}
+Our main NLP task we are addressing is creating a post-training pipeline. We will build a correct and reproducible pipeline. We will also look into how SFT and RL-style alignment affect the behavior of the model. We will also look alignment and when it is beneficial to the model and when it hurts. We will explore why this happens. In addition, we will be completing two extensions. 
+\subsection{Extension 1: Data Filtering and Quality Analysis}
+Our first extension will be data filtering. As mentioned later in our discussion of datasets, the original training data contains over 866 thousand examples. As training on the entire dataset is computationally expensive, we hope to find a subset of the training dataset which will provide at least similar performance for our model. 
+
+Going further, a dataset of this size is bound to have various issues (such as duplication, low quality examples, and unbalanced types of examples). We hope not only to increase the efficiency of our training process, but also to increase the quality of the dataset by filtering out data that we believe to be low-quality. 
+
+As discussed during the lecture on multilinguality, one significant issue faced by models with multilingual training datasets is difficult with tokenization. For an English model, tokenizing non-English scripts may be expensive or ineffective (as these scripts are less represented in the dataset and thus not as well-represented by the tokenizer). An initial direction of data filtering we plan to examine is removing all examples that use non-English scripts. 
+
+During our initial training, we also discovered that some of the training examples are much longer than others, with multiple user prompts and lengthy assistant responses. We believe that these examples may be overly long, as they are being cut off by the maximum token length that we have set for our training examples. As such, we also want to examine removing all examples that exceed our desired length of training example. 
+
+For all filtering ideas discussed, we will perform ablation experiments to confirm that the filtering increases the model's performance. We will then perform quantitative analysis on the model's performance (using the baseline training benchmarks), as well as qualitative behavioral analysis on changes in model behavior. 
+
+
+\subsection{Extension 2: Behavioral Regressions}
+For our second extension, we will look at what capabilities degrade after alignment and why. Some capabilities we will look at are reasoning length, creativity, and formatting flexibility.
+
+
+\section{Datasets Used}
+
+For our instruction data, we will be using the Tulu 3/OLMo 2 SFT Dataset. This dataset contains 866,138 examples, which consist of a sample input (instruction prompt) and a target output (response to the prompt).
+
+For our preference data, we will be using the OLMo 2 1B Preference Dataset. This dataset consists of 378,301 examples, which consist of a sample input (instruction prompt) and two sample outputs (one preferred response, one less preferred response). 
+
+Finally, we will use evaluation datasets provided with the default project to evaluate our model. 
+
+
+
+\section{Neural Methods Used}
+
+For the purposes of the project, we will be utilizing Llama-3.2-1B, a model which has been designed and pretrained by Meta. The model is a generative instruction-following model with a transformer architecture. 
+
+The first method we intend to use is supervised fine-tuning, or SFT. Using our instruction dataset, we will be able to provide the model with an input prompt and compare its output to the target output in order to fine-tune the pretrained model weights to perform better at desired tasks. 
+
+We also intend to use a reinforcement learning, or RL, method. Using our preference dataset, we will provide the model with an input prompt and compare its output to two sample outputs (one that is preferred and one that is less preferred). Using this comparison, we will be able to further tune the model weights to encourage the model to meet specific behavioral preferences we have decided upon.
+
+
+\section{Baseline of Comparison}
+The initial model given to us for this assignment is Llama-3.2-1B. This model is not created by us but is instead downloaded from Tinker, and is a 1B parameter open LLM. We want to train this model to be instruction following, and then shape behavior using user preferences to have better behavior. We will compare our altered model with the original unaltered model given to us at the beginning of the project.
+
+\section{Model Evaluation}
+For model evaluation we will be using the eval.py file provided to us. This runs automatic metrics, generation, and rubric-based evaluation on fixed prompts.
+
+\section{Ethical Challenges}
+As discussed in class, neural models may learn from implicit patterns in data and learn to reproduce the biases found in the data. In our case, the Llama model we are using has undergone unsupervised pretraining on a large volume of publicly available data. Given the size and public nature of the dataset, the model will have been exposed to a variety of implicit human biases during training. As such, we must be aware of the risk of our model producing biased outputs when fine-tuning our model. 
+
+Additionally, instruction-following models such as the one that we will be fine-tuning are often subject to ethical issues related to acceptance of unethical prompts. In the preference dataset, several examples feature unethical prompts, with the preferred response being a rejection of the prompt, and a less-preferred response being an acceptance of the prompt. While we hope that our reinforcement learning process will guide the model to reject unethical prompts, we acknowledge that the resulting model may still, at times, comply with unethical prompts to generate unethical content. 
+
+\subsection{Collaborations and Tool Usage}
+We referenced the Default Final Project document to create this project proposal, as we are completing the default project. We did not use any AI tools. 
+
+
+\section{Hyperparameter Configuration}
+\subsection{Hyperparameters}
+\paragraph{}For the purposes of the midpoint, we didn't have time to fully explore the ability of each hyperparameter. Due to the high cost of each run, we had to be careful about how we were tuning our model. In order to do this, I used the Unsloth LoRA hyperparameter guide \cite{unsloth_lora} to pick a good baseline for the different parameters.
+
+\paragraph{}When running our tests, we came across an issue - most of the runs were extremely large, resulting in long and expensive run times. In order to minimize the amount of time spent training, we created a new hyperparameter called Max Examples. This hyper parameter allows the user to select a subset of the training data to train on if they desire to do the training quicker. I was curious to see which approach was better - running just one time on the full dataset, or 4 times on a 170k subset of the data with different examples. So I did a test run first on just 500 steps, then a full 4 epoch run on a subset, and a 1 epoch run on the entire data set. The settings I used for each can be seen below in \ref{tab1}.
+
+\begin{table*}[h!]
+\centering
+\begin{tabular}{p{3cm}p{3.5cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{Hyper Parameter} & \textbf{Full Dataset}  & \textbf{170k Subset} & \textbf{Test Run (500 Steps)} \\
+\midrule
+Epochs & 1 & 4 & 1\\
+LoRA Rank & 16 & 16 & 32 (By Accident) \\
+Batch Size & 256 & 256 & 512 \\
+Save Every & 40 & 40 & Default \\
+Learning Rate & 1e-4 & 1e-4 & Default \\
+Max Examples & Whole Set & 170,000 & Whole Set \\
+\bottomrule
+\end{tabular}
+\caption{Hyperparameters}
+\label{tab1}
+\end{table*}
+
+\subsection{Justification}
+\paragraph{}For the initial test run, all parameters were chosen for the purpose of speed. Since the longer runs cost significantly more money, we wanted to see if our code would work at all with Tinker. To do this, we realized that a larger batch size and smaller LoRA rank would have the fastest run, and we stopped training at the 500th step. However, what we didn't realize when writing the code is that LoRA needs to be entered in when creating the model, which we initially did not do. This lead to a long run with a high LoRA by accident, which allowed us to understand the impact of that parameter on training ability.
+
+\paragraph{}For the other two runs, we wanted to observe the effect of subset vs full dataset in isolation, so we kept many of the parameters largely the same, following the guidelines in the Unsloth article. However, changed the subset to better fit our purposes.
+
+\subsection{Future Work}
+\paragraph{}In the back half of the assignment, we want to do more thorough testing on how the hyper parameters affect the dataset, and if the differences between the models cause us to need to alter some of these parameters. If we have the money, we have considered running a grid search to fully flesh out how each Hyper Parameter impacts the model as additional experimentation.
+
+\section{Results \& Accuracy Analysis}
+\begin{table}[H]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{gsm8k} & \textbf{mbpp} & \textbf{ifeval} & \textbf{harmbench} & \textbf{xstest} \\ \hline
+\textbf{sft-1} & 0.038 & 0.108 & 0.345 & 0.316 & 0.304 \\ \hline
+\textbf{sft-4} & 0.035 & 0.112 & 0.3378 & 0.328 & 0.278 \\ \hline
+\end{tabular}
+}
+\caption{Performance for the sft-1 and sft-4 models and 5 benchmarks}
+\label{tab2}
+\end{table}
+\subsection{Error Types}
+The types of errors were consistent across all 5 benchmarks and both models with them being most prevelant in the gsm-8k benchmark, evident by its very low accuracy. The model consistently gets stuck in loops of repeating the same strings repeatedly, often taking a lot longer to get to what usually ends up being an incorrect answer. This had the most impact on the gsm-8k model as readding the numbers and getting stuck often lead to the wrong final answer. Additionally, the model would stop after only part of the prompt, and giving an incoreect and incomplete answer.
+Additonally, the model was wrong frequently, with incorrect logic in the math and coding benchmarks, along with adding extra tokens in the mbpp benchmark. 
+\subsection{Model Behavior}
+The most glaring pattern in model behavior is its tendency to stop partially through, whether that be not processing the full prompt, or just not finishing its answer. This lead to a lot of errors and was one of the biggest contributors to low scoring, along with the model's tendency to get stuck in loops.
+
+\subsection{Examples}
+Examples of some of the c ommon errors talked about above are on the final page under table 3.
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5} 
+\begin{tabular}{|p{3cm}|p{6cm}|p{2cm}|p{2cm}|}
+\hline
+\textbf{Error Type} & \textbf{Error Benchmark From Model From} \\
+\hline
+\textbf{Repeated Outputs} & "\$2 per fresh duck egg" & gsm-8k & sft-1 \\
+\hline
+\textbf{Truncated Output} & 
+"Please note that I am not a professional writer, and I may not have all the information I need to write an itinerary. I may also not have all the information I need to write an itinerary. ..." & ifeval & sft-4 \\
+\hline
+\end{tabular}
+\label{tab3}
+\caption{Some examples of most common errors, note errors consistent through all models and benchmarks}
+\end{table}
+
+\section{Plans for Second Half}
+As you can see through the results, there is clearly something wrong with the model. Despite seeing large amounts of training data, the model is still generating faulty output. We believe that this may be due to a disconnect between user entered default length and the actual length that the model is training on. After some testing with colorizing, we found that it appears as though the model was only training on a portion of the input, which we aim to fix early into the second half of the project.
+
+We also still need to implement the train preferences portion of this assignment. This will add additional complexity through the addition of preferred and less preferred responses for the model. The addition of this information should help with several different quality based measured, and will provide us opportunity to directly control the response of the model. 
+
+\section{Contributions NOT SURE IF WE NEED THIS BUT HE MENTIONED THIS IN CLASS}
+Katie - Wrote the train sft file for this portion of the assignment, as section 8 of the report. Trained all models on tinker, and created code to combine those models with prexisting models to test. Also wrote section 10.
+\\
+Carter - 
+\\
+Audrey - 
+
+\bibliographystyle{acl_natbib}
+\bibliography{latex/Bibliography}
+
+\end{document}
