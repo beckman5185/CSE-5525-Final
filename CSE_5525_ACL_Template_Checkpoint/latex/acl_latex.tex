@@ -67,8 +67,9 @@ For all filtering ideas discussed, we will perform ablation experiments to confi
 
 
 \subsection{Extension 2: Behavioral Regressions}
-For our second extension, we will look at what capabilities degrade after alignment and why. Some capabilities we will look at are reasoning length, creativity, and formatting flexibility.
-
+For our second extension, we will be looking at which capabilities decline after alignment, and try to understand why the regressions occur. Alignment is important for in mitigating many harmful LLM tendencies including harmful outputs, misinformation, or leakage of private information. While alingment make models safer, it can come at a cost in model capabilites. 
+ \\ Some capabilties we plan to analyze both before and after alingment include reasoning length, creativity, and formatting flexibility. For reasoning length, we will look at if aligned models lead to longer or shorter more concise responses, and whether this affects the quality. For creatvity, we will see if alignment leads to a more cautious model. For formatting flexibility, we will be looking at how alignment affects the model's ability to adapt to various types of prompts.
+\\  For this, we will compare outputs between the normal models and their aligned counterparts.  By identifying where these changes occur and why will give us a better understanding of the model and potential new ideas on how to improve it. 
 
 \section{Datasets Used}
 
@@ -151,28 +152,37 @@ Max Examples & Whole Set & 170,000 & Whole Set \\
 \label{tab2}
 \end{table}
 \subsection{Error Types}
-The types of errors were consistent across all 5 benchmarks and both models with them being most prevelant in the gsm-8k benchmark, evident by its very low accuracy. The model consistently gets stuck in loops of repeating the same strings repeatedly, often taking a lot longer to get to what usually ends up being an incorrect answer. This had the most impact on the gsm-8k model as readding the numbers and getting stuck often lead to the wrong final answer. Additionally, the model would stop after only part of the prompt, and giving an incoreect and incomplete answer.
+The types of errors were consistent across all 5 benchmarks and both models with them being most prevelant in the gsm-8k benchmark, evident by its very low accuracy. The models consistently gets stuck in loops of repeating the same strings repeatedly, often taking a lot longer to get to what usually ends up being an incorrect answer. This had the most impact on the gsm-8k model as readding the numbers and getting stuck often lead to the wrong final answer. Additionally, the model would stop after only part of the prompt, and giving an incoreect and incomplete answer.
 Additonally, the model was wrong frequently, with incorrect logic in the math and coding benchmarks, along with adding extra tokens in the mbpp benchmark. 
 \subsection{Model Behavior}
-The most glaring pattern in model behavior is its tendency to stop partially through, whether that be not processing the full prompt, or just not finishing its answer. This lead to a lot of errors and was one of the biggest contributors to low scoring, along with the model's tendency to get stuck in loops.
-
+When looking at the results, it is quite clear how out model did not do very well in the benchmarks. The models also barely varied in terms of scores and performance. 
+The models performed by the far the worst on the gsm-8k model, both getting scores around 0.03. This is largely in part due to the errors described above. The repition and early stopping leads to incorrect math, greatly hurting the performance. 
+While not quite as bad, the mbpp benchmark also bore poor results. In addition to the afromentioned erorrs, this benchmark ran into some logic errors. The repeated text and charavters also lead to incorrect code. 
+The models perfromed the best on the ifeval benchmar, getting scores around 0.34. In this benchmark, the lack of a single correct answer allowed the repeated text to not have as much of an affect on the score. Additonally the shorter prompts prevented the issue of the models not finishing the prompt as if it stopped early, not as much information woould have been lost.
+The harmbench and xstest benchmarks has sinilar results to the ifeval for similar reasons. The allowed variability of the responses due to the response requirements not having a definitive answer allows it to perform better when compared to the mbpp and gsm-8k benhcmarks.
 \subsection{Examples}
-Examples of some of the c ommon errors talked about above are on the final page under table 3.
+Examples of some of the common errors talked about above are in table 3.
+
 \begin{table}[h]
 \centering
-\renewcommand{\arraystretch}{1.5} 
-\begin{tabular}{|p{3cm}|p{6cm}|p{2cm}|p{2cm}|}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|p{2.5cm}|p{4.5cm}|p{1.5cm}|p{1.5cm}|}
 \hline
-\textbf{Error Type} & \textbf{Error Benchmark From Model From} \\
+\textbf{Error Type} & \textbf{Example} & \textbf{Benchmark} & \textbf{Model} \\
 \hline
-\textbf{Repeated Outputs} & "\$2 per fresh duck egg" & gsm-8k & sft-1 \\
+Repeated Outputs & "\$2 per fresh duck egg" & gsm-8k & sft-1 \\
 \hline
-\textbf{Truncated Output} & 
-"Please note that I am not a professional writer, and I may not have all the information I need to write an itinerary. I may also not have all the information I need to write an itinerary. ..." & ifeval & sft-4 \\
+Truncated Output & 
+"Please note that I am not a professional writer, and I may not have all the information I need to write an itinerary. I may also not have all the information I need to write an itinerary. ..." 
+& ifeval & sft-4 \\
 \hline
 \end{tabular}
+}
+\caption{Examples of common errors across models and benchmarks}
 \label{tab3}
-\caption{Some examples of most common errors, note errors consistent through all models and benchmarks}
 \end{table}
 
 \section{Plans for Second Half}
