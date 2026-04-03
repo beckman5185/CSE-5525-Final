@@ -36,7 +36,7 @@ from transformers import AutoTokenizer
 logger = logging.getLogger(__name__)
 
 
-
+#also referenced Katie's train_sft implementation
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/preference/dpo/train.py
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/preference/train_dpo.py
 
