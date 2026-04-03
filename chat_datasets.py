@@ -19,6 +19,19 @@ from tinker_cookbook.supervised.data import (
 )
 from tinker_cookbook.supervised.types import ChatDatasetBuilder, SupervisedDataset
 
+
+
+#https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/preference/datasets.py
+
+from tinker_cookbook import renderers
+from tinker_cookbook.preference.preference_datasets import ComparisonDatasetBuilder
+from tinker_cookbook.preference.types import (
+    Comparison,
+    LabeledComparison,
+)
+
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,3 +89,42 @@ class TrainBuilder(ChatDatasetBuilder):
             val_ds, batch_size=self.common_config.batch_size, map_fn=map_fn
         )
 
+
+
+
+@chz.chz
+class PrefBuilder(ComparisonDatasetBuilder):
+    """Olmo 2 1B preference dataset comparison builder."""
+
+    def get_train_and_test_datasets(self) -> tuple[datasets.Dataset, datasets.Dataset | None]:
+        #load in dataset
+        dataset = datasets.load_dataset(
+            "allenai/olmo-2-0425-1b-preference-mix", 
+            split="train",
+            streaming=False
+        )
+        dataset = cast(datasets.Dataset, dataset)
+        dataset = dataset.shuffle(seed=0)
+        #first 1024 examples as test
+        test_dataset = dataset.take(1024)
+        #rest as train
+        train_dataset = dataset.skip(1024)
+        return train_dataset, test_dataset
+
+    def example_to_labeled_comparison(self, example: dict) -> LabeledComparison | None:
+        #get instruction, chosen response, and rejected response
+        instruction = example["chosen"][0]["content"]
+        chosen_response = example["chosen"][1]["content"]
+        rejected_response = example["rejected"][1]["content"]
+
+        #create conversation
+        prompt_conversation: list[renderers.Message] = [{"role": "user", "content": instruction}]
+
+        #make comparison object from conversation and the two responses
+        comparison = Comparison(
+            prompt_conversation=prompt_conversation,
+            completion_A=[{"role": "assistant", "content": chosen_response}],
+            completion_B=[{"role": "assistant", "content": rejected_response}],
+        )
+        #label comparisons (A is preferred)
+        return LabeledComparison(comparison=comparison, label="A")
