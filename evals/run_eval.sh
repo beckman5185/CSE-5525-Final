@@ -1,4 +1,13 @@
 #!/bin/bash
+#SBATCH --job-name=eval
+#SBATCH --account=PAS3272
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-node=1
+#SBATCH --mem=32G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/eval-%j.out
+#SBATCH --error=logs/eval-%j.err
 
 #This part is need for OSC users
 export CC=gcc
@@ -15,6 +24,9 @@ export OPENAI_API_KEY="sk-dummy-not-used"
 # rather than forking a grandchild process that loses CUDA visibility on SLURM
 export VLLM_ENABLE_V1_MULTIPROCESSING=0
 
+# Reduce fragmentation to avoid OOM during flex_attention block mask allocation
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 
 cd olmes/oe_eval/dependencies/safety
 bash install.sh
@@ -29,13 +41,23 @@ dataset_name=(
     "xstest::default"
 
 )
-model_path=/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-4
+model_path=/users/PAS2526/duffeykm/CSE-5525-Final/runs-merged/sft-2
 
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."
 
-    uv run olmes \
-        --model ${model_path} \
-        --task ${dataset} \
-        --output-dir $model_path-eval-${dataset} 
+    if [ "${dataset}" = "gsm8k" ]; then
+        uv run olmes \
+            --model ${model_path} \
+            --task ${dataset} \
+            --num-shots 8 \
+            --model-args '{"chat_model": true}' \
+            --output-dir $model_path-eval-${dataset}
+    else
+        uv run olmes \
+            --model ${model_path} \
+            --task ${dataset} \
+            --model-args '{"chat_model": true}' \
+            --output-dir $model_path-eval-${dataset}
+    fi
 done
