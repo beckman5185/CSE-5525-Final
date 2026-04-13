@@ -67,12 +67,6 @@ class CLIConfig:
     # Service configuration
     base_url: str | None = None
 
-    # Checkpointing and evaluation
-    save_every: int = 20
-    eval_every: int = 20
-    infrequent_eval_every: int = 100
-    inline_evals: str | None = None
-
     # DPO-specific parameters
     reference_model_name: str | None = None
 
@@ -133,8 +127,6 @@ def cli_main(cli_config: CLIConfig):
     cli_utils.check_log_dir(log_path, behavior_if_exists=cli_config.behavior_if_log_dir_exists)
 
 
-    #I think I was supposed to add logging in here somewhere?
-
     #get tokenizer
     tokenizer = AutoTokenizer.from_pretrained(cli_config.model_name)
 
@@ -160,12 +152,6 @@ class PREFTrainer:
         self.log_path = log_path
         self.logged_weighted_example = False
 
-        service_client = tinker.ServiceClient(base_url=training_args.base_url)
-        #added rank here - is this correct?
-        #resume checkpoint stuff - see SFT example
-        self.training_client = service_client.create_lora_training_client(self.model, rank=training_args.lora_rank)
-        #do I need a reference client? I think so for DPO specifically
-        self.reference_client = self.training_client.save_weights_and_get_sampling_client()
 
     def train(self):
         #set up DPO config
@@ -208,3 +194,5 @@ if __name__ == "__main__":
 #check back - definitely missing logging, checkpoints
 #compare to recent SFT code
 #do validation during training
+
+#to resume checkpoints - how to make sure I am staying up to date with the best run?
