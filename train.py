@@ -16,7 +16,6 @@ from tinker_cookbook.eval.evaluators import EvaluatorBuilder
 import chat_datasets
 from tinker_cookbook.supervised import train
 from tinker_cookbook.supervised.types import ChatDatasetBuilder, ChatDatasetBuilderCommonConfig
-#from tinker_cookbook.utils.lr_scheduling import LRSchedule
 from typing import Literal
 from tinker_cookbook import model_info
 
@@ -49,8 +48,8 @@ class CLIConfig:
     inline_evals: str | None = None
 
     # Dataset-specific parameters
-    renderer_name: str | None = None
-    train_on_what: renderers.TrainOnWhat = renderers.TrainOnWhat.ALL_ASSISTANT_MESSAGES  # Always train on all assistant messages
+    renderer_name: str = "llama3"
+    train_on_what: renderers.TrainOnWhat = renderers.TrainOnWhat.LAST_ASSISTANT_MESSAGE  # Always train on all assistant messages
     max_length: int | None = 16384
     batch_size: int = 256
 
@@ -133,7 +132,7 @@ def cli_main(cli_config: CLIConfig):
     #    load_checkpoint_path=cli_config.load_checkpoint_path,
     #    base_url=cli_config.base_url,
     #)
-    renderer_name = model_info.get_recommended_renderer_name(cli_config.model_name)
+    renderer_name = cli_config.renderer_name or model_info.get_recommended_renderer_name(cli_config.model_name)
     config = train.Config(
         log_path=log_path,
         model_name=cli_config.model_name,
