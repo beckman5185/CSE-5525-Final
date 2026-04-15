@@ -11,10 +11,9 @@ import chz
 import tinker
 import torch
 import torch.nn.functional as F
-import datetime
+from datetime import datetime
 
 from tinker_cookbook import checkpoint_utils, model_info
-from tinker_cookbook.eval.evaluators import Evaluator, EvaluatorBuilder
 from tinker_cookbook.preference import train_dpo
 from tinker_cookbook.supervised.train import run_evals
 from tinker_cookbook.supervised.types import ChatDatasetBuilder, SupervisedDataset, ChatDatasetBuilderCommonConfig
@@ -31,7 +30,6 @@ from tinker_cookbook.preference.dpo_datasets import (
 from tinker_cookbook import checkpoint_utils, cli_utils, renderers
 
 from chat_datasets import PrefBuilder
-from train_sft import _get_best_checkpoint_record
 
 from transformers import AutoTokenizer
 
@@ -46,7 +44,8 @@ logger = logging.getLogger(__name__)
 class CLIConfig:
     model_name: str = "meta-llama/Llama-3.2-1B"
     dataset: str = "pref"  # or path like tinker_cookbook.preference.preference_datasets:HHHBuilder
-    load_checkpoint_path: str = str(Path("sft-1-whole-set"))
+    load_checkpoint_path: str = "tinker://6bec8f14-1a73-52f0-8f3e-fc7d981825f1:train:0/sampler_weights/final" # hardcoding for now to check work
+    # is this supposed to be sampler weights?
     renderer_name: str | None = None
 
     # Training parameters
@@ -58,7 +57,7 @@ class CLIConfig:
     num_epochs: int = 1
 
     # Model parameters
-    lora_rank: int = 16
+    lora_rank: int = 8
 
     # Logging parameters
     log_path: str | None = None
@@ -135,8 +134,7 @@ def cli_main(cli_config: CLIConfig):
         f"model={cli_config.model_name}, dataset={cli_config.dataset}, "
         f"batch_size={cli_config.batch_size}, max_length={cli_config.max_length}, "
         f"num_epochs={cli_config.num_epochs}, max_steps={cli_config.max_steps}, "
-        f"save_every={cli_config.save_every}, log_path={log_path}, "
-        f"load_checkpoint_path={cli_config.load_checkpoint_path}"
+        f"log_path={log_path}, load_checkpoint_path={cli_config.load_checkpoint_path}"
     )
 
 
