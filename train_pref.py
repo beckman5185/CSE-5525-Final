@@ -44,16 +44,17 @@ logger = logging.getLogger(__name__)
 class CLIConfig:
     model_name: str = "meta-llama/Llama-3.2-1B"
     dataset: str = "pref"  # or path like tinker_cookbook.preference.preference_datasets:HHHBuilder
-    load_checkpoint_path: str = "tinker://6bec8f14-1a73-52f0-8f3e-fc7d981825f1:train:0/sampler_weights/final" # hardcoding for now to check work
+    load_checkpoint_path: str = "/users/PAS2950/acbeckman/CSE_5525/CSE-5525-Final/6bec8f14-1a73-52f0-8f3e-fc7d981825f1:train:0_sampler_weights_final"
+    #"tinker://6bec8f14-1a73-52f0-8f3e-fc7d981825f1:train:0/sampler_weights/final" # hardcoding for now to check work
     # is this supposed to be sampler weights?
     renderer_name: str | None = None
 
     # Training parameters
-    learning_rate: float = 1e-5
+    learning_rate: float = 1e-6#1e-5
     lr_schedule: LRSchedule = "linear"
     dpo_beta: float = 0.1
     max_length: int | None = 8192
-    batch_size: int = 256
+    batch_size: int = 64#256
     num_epochs: int = 1
 
     # Model parameters
