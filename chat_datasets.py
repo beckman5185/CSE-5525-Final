@@ -74,10 +74,11 @@ class TrainBuilder(ChatDatasetBuilder):
         train_on_what = (
             TrainOnWhat(self.common_config.train_on_what)
             if self.common_config.train_on_what
-            else TrainOnWhat.ALL_ASSISTANT_MESSAGES
+            else TrainOnWhat.LAST_ASSISTANT_MESSAGE
         )
 
         # take the last 1000 as test, the rest as train
+        print(self.common_config.max_length)
         def map_fn(row: dict) -> tinker.Datum:
             return conversation_to_datum(
                 row["messages"], self.renderer, self.common_config.max_length, train_on_what

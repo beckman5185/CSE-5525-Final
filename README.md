@@ -96,6 +96,36 @@ pip install -e .
 pip install -e ".[gpu]"  # for GPU support
 ```
 
+**Windows (PowerShell):**
+```powershell
+cd evals/olmes
+
+# Install with uv (recommended)
+$env:CC = "gcc"
+$env:CXX = "g++"
+uv sync
+uv sync --group gpu  # for GPU/vLLM support
+
+# Or install with pip
+pip install -e .
+pip install -e ".[gpu]"  # for GPU support
+```
+
+**Windows (Command Prompt):**
+```cmd
+cd evals\olmes
+
+# Install with uv (recommended)
+set CC=gcc
+set CXX=g++
+uv sync
+uv sync --group gpu
+
+# Or install with pip
+pip install -e .
+pip install -e ".[gpu]"
+```
+
 2. **Run evaluations:**
 You can decide to run your evaluations on Tinker or on OSC. If you decide to use Tinker for evaluation, you will be responsible to porting this code evaluation harness into Tinker for your usage.
 
