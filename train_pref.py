@@ -31,6 +31,7 @@ from tinker_cookbook.preference.dpo_datasets import (
 from tinker_cookbook import checkpoint_utils, cli_utils, renderers
 
 from chat_datasets import PrefBuilder
+from train_sft import _get_best_checkpoint_record
 
 from transformers import AutoTokenizer
 
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 class CLIConfig:
     model_name: str = "meta-llama/Llama-3.2-1B"
     dataset: str = "pref"  # or path like tinker_cookbook.preference.preference_datasets:HHHBuilder
-    load_checkpoint_path: str | None = None
+    load_checkpoint_path: str = str(Path("sft-1-whole-set"))
     renderer_name: str | None = None
 
     # Training parameters
@@ -68,7 +69,7 @@ class CLIConfig:
     base_url: str | None = None
 
     # DPO-specific parameters
-    reference_model_name: str | None = None
+    reference_model_name: str = "meta-llama/Llama-3.2-1B"
 
     behavior_if_log_dir_exists: cli_utils.LogdirBehavior = "ask"
 
@@ -116,15 +117,27 @@ def cli_main(cli_config: CLIConfig):
     if cli_config.log_path is not None:
         log_path = cli_config.log_path
     else:
-        log_path = f"/runs/{run_name}"
+        log_path = str(Path("runs") / run_name)
     if cli_config.wandb_name is not None:
         wandb_name = cli_config.wandb_name
     else:
         wandb_name = run_name
+
         
     # Ensure checkpoint/log directory exists before checkpoint_utils writes files.
     Path(log_path).mkdir(parents=True, exist_ok=True)
     cli_utils.check_log_dir(log_path, behavior_if_exists=cli_config.behavior_if_log_dir_exists)
+
+
+    # Log the information about the run for debugging
+    logger.info(
+        "Run config: "
+        f"model={cli_config.model_name}, dataset={cli_config.dataset}, "
+        f"batch_size={cli_config.batch_size}, max_length={cli_config.max_length}, "
+        f"num_epochs={cli_config.num_epochs}, max_steps={cli_config.max_steps}, "
+        f"save_every={cli_config.save_every}, log_path={log_path}, "
+        f"load_checkpoint_path={cli_config.load_checkpoint_path}"
+    )
 
 
     #get tokenizer
@@ -139,6 +152,11 @@ def cli_main(cli_config: CLIConfig):
     #initialize trainer and train
     trainer = PREFTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path)
     trainer.train()
+
+
+    #logging info about complete run
+    logger.info(f"Model checkpoint saved to {log_path}")
+    logger.info("DPO training completed successfully")
 
 
 
@@ -178,6 +196,7 @@ class PREFTrainer:
         max_steps=self.training_args.max_steps
         )
 
+
         #call training loop for DPO
         train_dpo.main(config)
 
@@ -189,10 +208,3 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     cli_config = chz.entrypoint(CLIConfig)
     cli_main(cli_config)
-
-
-#check back - definitely missing logging, checkpoints
-#compare to recent SFT code
-#do validation during training
-
-#to resume checkpoints - how to make sure I am staying up to date with the best run?
