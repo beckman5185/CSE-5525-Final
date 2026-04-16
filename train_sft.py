@@ -1,8 +1,6 @@
 """
 This module implements the SFTTrainer class for training your model using supervised fine-tuning (SFT).
 """
-import asyncio
-import inspect
 import math
 
 from tinker_cookbook import cli_utils, checkpoint_utils
@@ -26,23 +24,17 @@ logger = logging.getLogger(__name__)
 
 import wandb
 
-wandb.init(project="test-project", config={"learning_rate": 1e-5, "batch_size": 248, "steps": 1500})
-
-
-def _get_best_checkpoint_record(log_path: str) -> checkpoint_utils.CheckpointRecord | None:
-    checkpoints = checkpoint_utils.load_checkpoints_file(log_path)
-    best_checkpoints = [
-        checkpoint
-        for checkpoint in checkpoints
-        if checkpoint.state_path is not None
-        and (checkpoint.get("best") is True or checkpoint.name.startswith("best-step-"))
-    ]
-    if not best_checkpoints:
-        return None
-    return best_checkpoints[-1]
+wandb.init(
+    project="test-project",
+    config={
+        "learning_rate": 1e-5,
+        "batch_size": 248,
+        "steps": 1500,
+    }
+)
 
 class SFTTrainer:
-    def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args,log_path, load_checkpoint_path: str | None = None, resume_best_val_nll: float | None = None, resume_best_checkpoint_name: str | None = None):
+    def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args, log_path):
         # Argument initializations for trainer class
         self.model = model
         self.tokenizer = tokenizer
@@ -51,107 +43,19 @@ class SFTTrainer:
         self.training_args = training_args
         self.log_path = log_path
         self.logged_weighted_example = False
-        self.best_val_nll = (
-            resume_best_val_nll if resume_best_val_nll is not None else float("inf")
-        )
-        self.best_checkpoint_name: str | None = resume_best_checkpoint_name
 
         service_client = tinker.ServiceClient(base_url=training_args.base_url)
-        if load_checkpoint_path is not None:
-            logger.info("Resuming training from checkpoint %s", load_checkpoint_path)
-            self.training_client = service_client.create_training_client_from_state_with_optimizer(load_checkpoint_path)
-        else:
-            self.training_client = service_client.create_lora_training_client(self.model)
-
-    async def _await_value(self, value):
-        return await value
-
-    def _resolve_result(self, value):
-        while True:
-            if inspect.isawaitable(value):
-                value = asyncio.run(self._await_value(value))
-                continue
-
-            result_method = getattr(value, "result", None)
-            if callable(result_method):
-                resolved = result_method()
-                if resolved is value:
-                    return value
-                value = resolved
-                continue
-
-            return value
-
-    def _compute_validation_nll(self) -> float:
-        total_weighted_logprobs = 0.0
-        total_weights = 0.0
-
-        for batch_idx in range(len(self.val_dataset)):
-            batch = self.val_dataset.get_batch(batch_idx)
-            if not batch:
-                continue
-
-            result = self._resolve_result(self.training_client.forward(batch, loss_fn="cross_entropy"))
-
-            logprobs = [x["logprobs"] for x in result.loss_fn_outputs]
-            weights = [datum.loss_fn_inputs["weights"] for datum in batch]
-
-            for logprobs_item, weights_item in zip(logprobs, weights, strict=True):
-                logprobs_torch = logprobs_item.to_torch()
-                weights_torch = weights_item.to_torch()
-                total_weighted_logprobs += logprobs_torch.dot(weights_torch).item()
-                total_weights += weights_torch.sum().item()
-
-        if total_weights == 0:
-            logger.warning("No valid weights found for validation NLL computation")
-            return float("nan")
-
-        return -total_weighted_logprobs / total_weights
-
-
-    def _maybe_save_best_checkpoint(self, *, step: int, epoch: int, batch_idx: int) -> None:
-        val_nll = self._compute_validation_nll()
-
-        # Validate before logging or saving
-        if math.isnan(val_nll):
-            logger.info("Skipping best checkpoint save because validation NLL is NaN")
-            return
-
-        wandb.log({"val/nll": val_nll, "step": step})
-        logger.info("Validation NLL at step %d: %.6f", step, val_nll)
-
-        if val_nll < self.best_val_nll:
-            self.best_val_nll = val_nll
-            self.best_checkpoint_name = f"best-step-{step:06d}"
-            checkpoint_utils.save_checkpoint(
-                training_client=self.training_client,
-                name=self.best_checkpoint_name,
-                log_path=self.log_path,
-                loop_state={
-                    "epoch": epoch,
-                    "batch": batch_idx,
-                    "step": step,
-                    "best": True,
-                    "val_mean_nll": val_nll,
-                },
-                kind="both",
-            )
-            logger.info(
-                "Saved new best checkpoint %s with validation NLL %.6f",
-                self.best_checkpoint_name,
-                val_nll,
-            )
+        self.training_client = service_client.create_lora_training_client(self.model)
 
     def train(self):
         num_batches = len(self.train_dataset)
+        planned_total_steps = self.training_args.num_epochs * num_batches
         max_steps = self.training_args.max_steps
-
-        # max_steps is interpreted as a per-epoch cap.
+        # Adjust steps based on command line arguments
         if max_steps is not None:
-            steps_per_epoch = max(1, min(num_batches, max_steps))
+            total_steps = max(1, min(planned_total_steps, max_steps))
         else:
-            steps_per_epoch = num_batches
-        total_steps = max(1, self.training_args.num_epochs * steps_per_epoch)
+            total_steps = max(1, planned_total_steps)
 
         # Initialize progress bar, aiming to implement similar to what they have in train.py from the cookbook
         progress_bar = tqdm(total=total_steps, desc="Training", unit="batch")
@@ -159,12 +63,10 @@ class SFTTrainer:
         # Debugging statements for epochs
         logger.info(
             f"Training for {num_batches} batches x {self.training_args.num_epochs} epochs"
-            + (f" (capped at {max_steps} steps per epoch)" if max_steps is not None else "")
+            + (f" (capped at {max_steps} steps)" if max_steps is not None else "")
         )
 
-        last_completed_step: int | None = None
-        last_completed_epoch = 0
-        last_completed_batch = 0
+        stop_training = False
 
         # For each epoch:
         for epoch in range(self.training_args.num_epochs):
@@ -175,7 +77,7 @@ class SFTTrainer:
             for batch_idx in range(num_batches):
                 # Sets a metrics map to log metrics at each step
                 metrics = {}
-                step = epoch * steps_per_epoch + batch_idx
+                step = epoch * num_batches + batch_idx
                 batch = self.train_dataset.get_batch(batch_idx)
 
                 # DEBUG - check to see if the statement is being weighted right
@@ -184,10 +86,21 @@ class SFTTrainer:
                     logger.info("Weights: %s", batch[0].loss_fn_inputs["weights"].tolist())
                     self.logged_weighted_example = True
 
-                # Terminate the epoch loop if we've reached max steps for this epoch.
-                if max_steps is not None and batch_idx >= max_steps:
-                    logger.info(f"Reached max_steps={max_steps} for epoch={epoch}. Moving to next epoch.")
+                # Terminate the loop if we've reached the max steps
+                if max_steps is not None and step >= max_steps:
+                    logger.info(f"Reached max_steps={max_steps}. Stopping training loop.")
+                    stop_training = True
                     break
+
+                # Save checkpoint every save_every steps (specified by config)
+                if self.training_args.save_every > 0 and step > 0 and step % self.training_args.save_every == 0:
+                    checkpoint_utils.save_checkpoint(
+                        training_client=self.training_client,
+                        name=f"{step:06d}",
+                        log_path=self.log_path,
+                        loop_state={"epoch": epoch, "batch": batch_idx},
+                        kind="both",
+                    )
 
                 # Code based on https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/sl_loop.py
                 progress = step / max(total_steps - 1, 1)
@@ -195,12 +108,12 @@ class SFTTrainer:
                 adam_params = tinker.AdamParams(learning_rate=lr, beta1=0.9, beta2=0.95, eps=1e-8)
 
                 # Calls the pre cooked forward and backward pass with optim step
-                fwd_bwd_results = self._resolve_result(
-                    self.training_client.forward_backward(batch, loss_fn="cross_entropy")
-                )
+                fwd_bwd = self.training_client.forward_backward(batch, loss_fn="cross_entropy")
+                # Fix for potential async issues, may not be necessary
+                fwd_bwd_results = fwd_bwd.result()  
 
-                optim_results = self._resolve_result(self.training_client.optim_step(adam_params))
-                metrics.update(optim_results.metrics)
+                optim = self.training_client.optim_step(adam_params)
+                metrics.update(optim.result().metrics)
 
                 # Compute metrics (inspired by sl_loop as cited above)
                 logprobs = [x["logprobs"] for x in fwd_bwd_results.loss_fn_outputs]
@@ -218,31 +131,29 @@ class SFTTrainer:
                 )
 
                 # Log metrics for wandb, DEBUG
-                wandb.log({"train/nll": nll, "learning_rate": lr, "step": step})
+                wandb.log({
+                    "train/nll": nll,
+                    "learning_rate": lr,
+                    "step": step
+                })
 
                 # Add progress bar update to know what's happening in the loop
                 progress_bar.set_postfix(metrics)
                 progress_bar.update(1)
 
-                last_completed_step = step
-                last_completed_epoch = epoch
-                last_completed_batch = batch_idx
-
-                # Save checkpoints after the step so the saved state matches the updated weights.
-                if self.training_args.save_every > 0 and step > 0 and step % self.training_args.save_every == 0:
-                    checkpoint_utils.save_checkpoint(training_client=self.training_client, name=f"{step:06d}", log_path=self.log_path, loop_state={"epoch": epoch, "batch": batch_idx, "step": step}, kind="both")
-
-        if last_completed_step is not None:
-            self._maybe_save_best_checkpoint(
-                step=last_completed_step,
-                epoch=last_completed_epoch,
-                batch_idx=last_completed_batch,
-            )
+            if stop_training:
+                break
 
         # Saves the final checkpoint at the very end (does this need to be best? Or should I leave it as is) TODO
-        checkpoint_utils.save_checkpoint(training_client=self.training_client, name="final", log_path=self.log_path, loop_state={"batch": num_batches, "best_val_nll": self.best_val_nll, "best_checkpoint": self.best_checkpoint_name}, kind="both")
-        logger.info("Training finished. Final checkpoint saved to: %s. Best checkpoint: %s", self.log_path, self.best_checkpoint_name)
-
+        checkpoint_utils.save_checkpoint(
+                training_client=self.training_client,
+                name="final",
+            log_path=self.log_path,
+                loop_state={"batch": num_batches},
+                kind="both",
+            )
+        logger.info(f"Training finished. Final checkpoint saved to: {self.log_path}")
+            
 
 def main(cli_config: CLIConfig):
 
@@ -251,27 +162,19 @@ def main(cli_config: CLIConfig):
         #map_fn: Callable[[dict], tinker.Datum] | None = None,
         #flatmap_fn: Callable[[dict], list[tinker.Datum]] | None = None,
 
+    #from sl_loop.py
+    model = "meta-llama/Llama-3.2-1B"
+
     # Get logs stuff
     # build full config
-    model_name = cli_config.model_name.replace("/", "-")
+    # TODO: FIX SO THAT IT USES THE CONFIG DIRECTORY
+    model_name = model.replace("/", "-")
     date_and_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
     run_name = f"{cli_config.dataset}-{model_name}-{cli_config.lora_rank}rank-{cli_config.learning_rate}lr-{cli_config.batch_size}batch-{date_and_time}"
     if cli_config.log_path is not None:
         log_path = cli_config.log_path
     else:
         log_path = str(Path("runs") / run_name)
-
-    resume_checkpoint_record = _get_best_checkpoint_record(log_path)
-    load_checkpoint_path = cli_config.load_checkpoint_path
-    resume_best_val_nll: float | None = None
-    resume_best_checkpoint_name: str | None = None
-
-    if load_checkpoint_path is None and resume_checkpoint_record is not None:
-        load_checkpoint_path = resume_checkpoint_record.state_path
-        resume_best_checkpoint_name = resume_checkpoint_record.name
-        best_val_nll = resume_checkpoint_record.get("val_mean_nll")
-        if best_val_nll is not None:
-            resume_best_val_nll = float(best_val_nll)
 
     # Ensure checkpoint/log directory exists before checkpoint_utils writes files.
     Path(log_path).mkdir(parents=True, exist_ok=True)
@@ -292,9 +195,6 @@ def main(cli_config: CLIConfig):
     tokenizer = AutoTokenizer.from_pretrained(cli_config.model_name)
     
     # Build the dataset builder config to pass to the TrainBuilder, which will create the train and val datasets (changed from Audrey's)
-    # It wasn't working from your code so I think I'm just getting confused on how to use it
-    # TODO: Tell me how this works maybe? I use it below
-    print(cli_config.max_length)
     dataset_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=cli_config.model_name,
         renderer_name=renderer_name,
@@ -308,7 +208,7 @@ def main(cli_config: CLIConfig):
     train_dataset, val_dataset = dataset_builder()
 
     # Pass CLIConfig as training_args so fields like num_epochs are available in the trainer loop.
-    trainer = SFTTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path, load_checkpoint_path=load_checkpoint_path, resume_best_val_nll=resume_best_val_nll, resume_best_checkpoint_name=resume_best_checkpoint_name)
+    trainer = SFTTrainer(model, tokenizer, train_dataset, val_dataset, cli_config, log_path)
     trainer.train()
 
     #args - batch size, learning rate, num epochs, 
