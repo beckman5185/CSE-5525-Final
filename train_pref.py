@@ -22,6 +22,7 @@ from tinker_cookbook.utils import ml_log, trace
 from tinker_cookbook.utils.format_colorized import format_colorized
 from tinker_cookbook.utils.lr_scheduling import LRSchedule, compute_schedule_lr_multiplier
 from tinker_cookbook.utils.misc_utils import iteration_dir
+from tinker_cookbook import model_info
 
 from tinker_cookbook.preference.dpo_datasets import (
     DPODatasetBuilderFromComparisons,
@@ -39,13 +40,13 @@ logger = logging.getLogger(__name__)
 #also referenced Katie's train_sft implementation
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/preference/dpo/train.py
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/preference/train_dpo.py
+#https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tutorials/407_rlhf_pipeline.py 
 
 @chz.chz
 class CLIConfig:
     model_name: str = "meta-llama/Llama-3.2-1B"
     dataset: str = "pref"  # or path like tinker_cookbook.preference.preference_datasets:HHHBuilder
-    load_checkpoint_path: str = "tinker://6bec8f14-1a73-52f0-8f3e-fc7d981825f1:train:0/sampler_weights/final" # hardcoding for now to check work
-    # is this supposed to be sampler weights?
+    load_checkpoint_path: str | None = None
     renderer_name: str | None = None
 
     # Training parameters
@@ -57,7 +58,7 @@ class CLIConfig:
     num_epochs: int = 1
 
     # Model parameters
-    lora_rank: int = 8
+    lora_rank: int = 4
 
     # Logging parameters
     log_path: str | None = None
@@ -68,7 +69,7 @@ class CLIConfig:
     base_url: str | None = None
 
     # DPO-specific parameters
-    reference_model_name: str = "meta-llama/Llama-3.2-1B"
+    reference_model_name: str | None = None #= "meta-llama/Llama-3.2-1B"
 
     behavior_if_log_dir_exists: cli_utils.LogdirBehavior = "ask"
 
@@ -90,6 +91,8 @@ def get_dataset_builder(
         max_length=max_length,
         batch_size=batch_size,
     )
+
+    logger.info(f"Renderer name: {renderer_name}")
 
     if dataset == "pref":
         return DPODatasetBuilderFromComparisons(
@@ -144,11 +147,14 @@ def cli_main(cli_config: CLIConfig):
     #not sure if this part is right. Datasets are different in this one
     #create datasets using builder
     dataset_builder = get_dataset_builder(cli_config.dataset, cli_config.model_name, 
-                                          cli_config.renderer_name, cli_config.max_length, cli_config.batch_size)
+                                          renderer_name, cli_config.max_length, cli_config.batch_size)
     train_dataset, val_dataset = dataset_builder()
 
+    #hardcoding in the best one
+    sft_log_path = str(Path("runs/sft-1-whole-set"))
+
     #initialize trainer and train
-    trainer = PREFTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path)
+    trainer = PREFTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path, sft_log_path)
     trainer.train()
 
 
@@ -159,7 +165,7 @@ def cli_main(cli_config: CLIConfig):
 
 
 class PREFTrainer:
-    def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args, log_path):
+    def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args, log_path, sft_log_path):
         self.model = model
         self.tokenizer = tokenizer
         self.train_dataset = train_dataset
@@ -168,25 +174,42 @@ class PREFTrainer:
         self.log_path = log_path
         self.logged_weighted_example = False
 
+        #assume that there is a checkpoint present to load from
+        self.load_checkpoint_path = training_args.load_checkpoint_path
+
+        #if not, load from SFT checkpoint
+        #code sourced from https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tutorials/407_rlhf_pipeline.py 
+        if training_args.load_checkpoint_path is None:
+            sft_ckpt = checkpoint_utils.get_last_checkpoint(sft_log_path)
+            assert sft_ckpt is not None, f"No SFT checkpoint in {sft_log_path}"
+            logger.info(f"SFT checkpoint loaded from {sft_log_path}")
+            self.load_checkpoint_path = sft_ckpt.state_path #"tinker://6bec8f14-1a73-52f0-8f3e-fc7d981825f1/weights/final"
+
+        #get renderer name
+        #if none given, get recommended
+        self.renderer_name = cli_config.renderer_name or model_info.get_recommended_renderer_name(cli_config.model_name)
+
 
     def train(self):
         #set up DPO config
         config = train_dpo.Config(
         log_path=self.log_path,
         model_name=self.model,
-        renderer_name=self.training_args.renderer_name,
+        renderer_name=self.renderer_name,
         dataset_builder=get_dataset_builder(
             self.training_args.dataset,
             self.model,
-            self.training_args.renderer_name,
+            self.renderer_name,
             self.training_args.max_length,
             self.training_args.batch_size,
         ),
-        load_checkpoint_path=self.training_args.load_checkpoint_path,
+        load_checkpoint_path=self.load_checkpoint_path,
         evaluator_builders=[],
         learning_rate=self.training_args.learning_rate,
         lr_schedule=self.training_args.lr_schedule,
+        num_epochs=self.training_args.num_epochs,
         dpo_beta=self.training_args.dpo_beta,
+        lora_rank=self.training_args.lora_rank,
         base_url=self.training_args.base_url,
         wandb_project=cli_config.wandb_project,
         wandb_name=self.training_args.wandb_name,
