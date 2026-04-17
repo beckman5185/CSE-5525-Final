@@ -211,7 +211,13 @@ def main(cli_config: CLIConfig):
     )
 
     # Audrey's helper function to create the datasets
-    dataset_builder = TrainBuilder(common_config=dataset_config)
+    dataset_builder = TrainBuilder(
+        common_config=dataset_config,
+        lowmath=cli_config.lowmath,
+        noforeign=cli_config.noforeign,
+        max_example_tokens=cli_config.max_example_tokens,
+        no_olmo_tablegpt=cli_config.no_olmo_tablegpt,
+    )
     train_dataset, val_dataset = dataset_builder()
 
     # Pass CLIConfig as training_args so fields like num_epochs are available in the trainer loop.
