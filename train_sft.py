@@ -1,6 +1,8 @@
 """
 This module implements the SFTTrainer class for training your model using supervised fine-tuning (SFT).
 """
+
+# Imports for the cookbook and other key utilities
 import math
 
 from tinker_cookbook import cli_utils, checkpoint_utils
@@ -24,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 import wandb
 
+# Initializes wandb. Change this code to correspond to current run metrics
 wandb.init(
     project="test-project",
     config={
@@ -33,6 +36,7 @@ wandb.init(
     }
 )
 
+# Main class for training
 class SFTTrainer:
     def __init__(self, model, tokenizer, train_dataset, val_dataset, training_args, log_path):
         # Argument initializations for trainer class
@@ -44,14 +48,17 @@ class SFTTrainer:
         self.log_path = log_path
         self.logged_weighted_example = False
 
+        # Creates the service and LoRA training clients using cookbook methods
         service_client = tinker.ServiceClient(base_url=training_args.base_url)
         self.training_client = service_client.create_lora_training_client(self.model)
 
     def train(self):
+        # Gets number of batches and the epochs for the dataset
         num_batches = len(self.train_dataset)
         planned_total_steps = self.training_args.num_epochs * num_batches
         max_steps = self.training_args.max_steps
-        # Adjust steps based on command line arguments
+        
+        # Adjust steps based on command line arguments, in case incorrect input is given
         if max_steps is not None:
             total_steps = max(1, min(planned_total_steps, max_steps))
         else:
@@ -80,7 +87,7 @@ class SFTTrainer:
                 step = epoch * num_batches + batch_idx
                 batch = self.train_dataset.get_batch(batch_idx)
 
-                # DEBUG - check to see if the statement is being weighted right
+                # Gives weighted example preview for debug
                 if not self.logged_weighted_example and batch:
                     logger.info("Weighted example preview:\n%s", colorize_example(batch[0], self.tokenizer))
                     logger.info("Weights: %s", batch[0].loss_fn_inputs["weights"].tolist())
@@ -92,7 +99,7 @@ class SFTTrainer:
                     stop_training = True
                     break
 
-                # Save checkpoint every save_every steps (specified by config)
+                # Save checkpoint every save_every steps (specified by config), inspired by cookbook
                 if self.training_args.save_every > 0 and step > 0 and step % self.training_args.save_every == 0:
                     checkpoint_utils.save_checkpoint(
                         training_client=self.training_client,
@@ -112,6 +119,7 @@ class SFTTrainer:
                 # Fix for potential async issues, may not be necessary
                 fwd_bwd_results = fwd_bwd.result()  
 
+                # Calls the optim step and updates metrics
                 optim = self.training_client.optim_step(adam_params)
                 metrics.update(optim.result().metrics)
 
@@ -130,7 +138,7 @@ class SFTTrainer:
                     }
                 )
 
-                # Log metrics for wandb, DEBUG
+                # Log metrics for wandb to see how training is progressing and debug any model issues
                 wandb.log({
                     "train/nll": nll,
                     "learning_rate": lr,
@@ -144,7 +152,7 @@ class SFTTrainer:
             if stop_training:
                 break
 
-        # Saves the final checkpoint at the very end (does this need to be best? Or should I leave it as is) TODO
+        # Saves the final checkpoint at the very end
         checkpoint_utils.save_checkpoint(
                 training_client=self.training_client,
                 name="final",
@@ -167,7 +175,6 @@ def main(cli_config: CLIConfig):
 
     # Get logs stuff
     # build full config
-    # TODO: FIX SO THAT IT USES THE CONFIG DIRECTORY
     model_name = model.replace("/", "-")
     date_and_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
     run_name = f"{cli_config.dataset}-{model_name}-{cli_config.lora_rank}rank-{cli_config.learning_rate}lr-{cli_config.batch_size}batch-{date_and_time}"
@@ -204,7 +211,13 @@ def main(cli_config: CLIConfig):
     )
 
     # Audrey's helper function to create the datasets
-    dataset_builder = TrainBuilder(common_config=dataset_config)
+    dataset_builder = TrainBuilder(
+        common_config=dataset_config,
+        lowmath=cli_config.lowmath,
+        noforeign=cli_config.noforeign,
+        max_example_tokens=cli_config.max_example_tokens,
+        no_olmo_tablegpt=cli_config.no_olmo_tablegpt,
+    )
     train_dataset, val_dataset = dataset_builder()
 
     # Pass CLIConfig as training_args so fields like num_epochs are available in the trainer loop.

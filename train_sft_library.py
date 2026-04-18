@@ -27,6 +27,7 @@ class SFTTrainer:
 
 # Main function entry point
 def main(cli_config: CLIConfig):
+    # Loads in the model name
     model_name = cli_config.model_name.replace("/", "-")
     date_and_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
     run_name = (
@@ -34,6 +35,7 @@ def main(cli_config: CLIConfig):
         f"-{cli_config.learning_rate}lr-{cli_config.batch_size}batch-{date_and_time}"
     )
 
+    # Checks to see if we're resuming or not
     if cli_config.log_path is not None:
         log_path = cli_config.log_path
     else:
@@ -41,8 +43,10 @@ def main(cli_config: CLIConfig):
 
     cli_utils.check_log_dir(log_path, behavior_if_exists=cli_config.behavior_if_log_dir_exists)
 
+    # If user specifies renderer name use that, otherwise use get recommended renderer
     renderer_name = cli_config.renderer_name or model_info.get_recommended_renderer_name(cli_config.model_name)
 
+    # Build config for chat dataset
     dataset_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=cli_config.model_name,
         renderer_name=renderer_name,
@@ -51,8 +55,10 @@ def main(cli_config: CLIConfig):
         train_on_what=cli_config.train_on_what,
     )
 
+    # Connect wandb for progress checking
     wandb_name = cli_config.wandb_name or run_name
 
+    # Builds the training config with all of the different parameters specified
     config = supervised_train.Config(
         log_path=log_path,
         model_name=cli_config.model_name,

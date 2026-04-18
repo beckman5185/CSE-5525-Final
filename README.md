@@ -60,7 +60,7 @@ Each template provides a basic class structure. You should:
 1. Complete the `train()` method with your training loop
 2. Add data loading and preprocessing
 3. Implement checkpointing and logging
-4. Add configuration management via the `configs/` directory
+4. Add configuration management through the existing chz framework given by the tinker cookbook
 
 ## Evaluation
 
