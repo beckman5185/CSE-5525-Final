@@ -61,6 +61,12 @@ class CLIConfig:
 
     max_steps: int | None = None
 
+    lowmath: bool | None = False
+    noforeign: bool = False,
+    max_example_tokens: int | None = 8000,
+    no_olmo_tablegpt: bool = False
+
+
 
 def get_dataset_builder(
     dataset: str,
