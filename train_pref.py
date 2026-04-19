@@ -221,7 +221,7 @@ def cli_main(cli_config: CLIConfig):
     train_dataset, val_dataset = dataset_builder()
 
     #hardcoding in the best one
-    sft_log_path = "runs/sft-1-whole-set"
+    sft_log_path = "runs/sft-rank8"
 
     #initialize trainer and train
     trainer = PREFTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path, sft_log_path)
