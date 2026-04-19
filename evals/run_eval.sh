@@ -41,7 +41,7 @@ dataset_name=(
     "xstest::default"
 
 )
-model_path=/users/PAS2526/duffeykm/CSE-5525-Final/runs-merged/sft-2
+model_path=/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-no-olmo-tablegpt
 
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."
