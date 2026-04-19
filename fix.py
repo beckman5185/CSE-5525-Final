@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer
 
-model_path = "/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-4"  # update this to your model path
+model_path = "sft-math-balance"  # update this to your model path
 
 # Created with the help of Copilot
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B")

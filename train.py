@@ -62,9 +62,9 @@ class CLIConfig:
     max_steps: int | None = None
 
     lowmath: bool | None = False
-    noforeign: bool = False,
-    max_example_tokens: int | None = 8000,
-    no_olmo_tablegpt: bool = False
+    noforeign: bool | None = False
+    max_example_tokens: int | None = 8000
+    no_olmo_tablegpt: bool | None = False
 
 
 
