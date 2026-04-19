@@ -50,7 +50,7 @@ class SFTTrainer:
 
         # Creates the service and LoRA training clients using cookbook methods
         service_client = tinker.ServiceClient(base_url=training_args.base_url)
-        self.training_client = service_client.create_lora_training_client(self.model)
+        self.training_client = service_client.create_lora_training_client(self.model, rank=training_args.lora_rank)
 
     def train(self):
         # Gets number of batches and the epochs for the dataset

@@ -129,6 +129,7 @@ class TrainBuilder(ChatDatasetBuilder):
         )
         dataset = cast(datasets.Dataset, dataset)
 
+        """
         before_count = len(dataset)
         print(self.lowmath, self.noforeign, self.max_example_tokens, self.no_olmo_tablegpt)
         dataset = dataset.filter(self._passes_filters, desc="Applying TrainBuilder filters")
@@ -141,6 +142,7 @@ class TrainBuilder(ChatDatasetBuilder):
             self.noforeign,
             self.no_olmo_tablegpt,
         )
+        """
 
         dataset = dataset.shuffle(seed=0)
         val_ds = dataset.take(1024)
