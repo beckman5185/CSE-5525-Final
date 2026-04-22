@@ -1,215 +1,66 @@
 # CSE 5525: Default Project - Spring 2026
+## Kathleen Duffey, Carter Glazer, Audrey Beckman
 
 ## Overview
-
-This is the default project for CSE 5525 (Foundations of Speech and Language Processing). In this project, you will implement and train a language model using various training paradigms, then evaluate its performance on several benchmark tasks.
+LLMs are becoming increasingly important for the modern computer scientist to be able to understand and use. To do this, it is imperative that we know how these models train and work internally - which is the aim of these assignments. Our goal for this project is to build a correct training pipeline by using a ˜1B parameter open LLM provided on Tinker.
 
 ## Project Structure
 
 ```
 ├── README.md                 # This file
 ├── train_sft.py              # Template for Supervised Fine-Tuning
-├── train_rm.py               # Template for Reward Modeling
 ├── train_pref.py             # Template for Preference Optimization
 ├── configs/                  # Configuration files for training
 ├── scripts/                  # Utility scripts
 └── evals/                    # Evaluation suite (OLMES)
-    ├── run_eval.sh           # Script to run evaluations
-    └── olmes/                # AI2's Open Language Model Evaluation System
+   ├── run_eval.sh           # Script to run evaluations
+   └── olmes/                # AI2's Open Language Model Evaluation System
 ```
 
-## Getting Started
+Model
+```
+Llama-3.2-1B Model
+```
+## How to Run SFT
 
 ### 1. Environment Setup
 
-Set up your Python environment with the required dependencies:
+#### 1. Activate enviroment & setup
 
-```bash
-# Clone the repository
-git clone --recurse-submodules https://github.com/shocheen/cse-5525-spring-2026-default-project.git
-cd cse-5525-spring-2026-default-project
-
-# Create and activate a virtual environment
+# Create and activate enviroment
 python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies (adjust based on your requirements)
 uv pip install tinker
+
+#### 2. Set Tinker API key
+```bash
+$env:TINKER_API_KEY="your_key_here"
+```
+#### 3. Run Training with Desired Parameters
+```bash
+python train_sft.py lora_rank=16 num_epochs=2 batch_size=256 save_every=200 learning_rate=3e-4 lr_schedule=cosine max_length=8096 log_path=runs/sft-2 wandb_project=CSE-5525-Final
+```
+### 2. Testing
+#### 1. Switch to OSC and Request GPU, Then Activate Environment
+Following guidelines on the official OSC website and earlier in this readme
+
+#### 2. Download Tinker Weights
+```bash
+tinker checkpoint download tinker://d3b79b07-d58a-56f2-bc31-a78b6f6dde37:train:0/sampler_weights/final # Or whatever the path is to the sampler weights
+```
+#### 3. Run transform.py
+First, change the arguments in the file to match the file you just created
+```bash
+python transform.py
 ```
 
-### 2. Training
+#### 4. Switch tokenizer_config.json tokenizer
+In file you just created, go to the tokenizer: line. Change this from TokenizerBackend to PreTrainedTokenizerFast.
 
-We provide three template files for different training approaches:
-
-#### Supervised Fine-Tuning (SFT)
-Implement your SFT training logic in `train_sft.py`. This is the standard approach for instruction-tuning language models.
-
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/chat_sl)
-
-#### Reward Modeling (RM)
-Implement your reward model training in `train_rm.py`. This trains a model to predict human preferences.
-
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/preference/rlhf)
+#### 5. Run evaluations
+Run evaluations according to olmes documentation provided!
 
 #### Preference Optimization (PREF)
-Implement your preference optimization (e.g., DPO, PPO) in `train_pref.py`. This aligns the model using preference data.
-
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/preference)
-
-Each template provides a basic class structure. You should:
-1. Complete the `train()` method with your training loop
-2. Add data loading and preprocessing
-3. Implement checkpointing and logging
-4. Add configuration management through the existing chz framework given by the tinker cookbook
-
-## Evaluation
-
-After training your model, you must evaluate it using **OLMES** (Open Language Model Evaluation System), AI2's evaluation suite.
-
-### Evaluation Tasks
-
-Your model will be evaluated on the following benchmarks:
-
-| Task | Description |
-|------|-------------|
-| **GSM8K** | Grade school math word problems (mathematical reasoning) |
-| **IFEval** | Instruction following evaluation |
-| **MBPP** | Mostly Basic Python Problems (code generation) |
-| **HarmBench** | Safety and harmfulness evaluation |
-| **XSTest** | Safety and harmfulness evaluation |
-
-### Running Evaluations
-
-1. **Setup OLMES:**
-
-```bash
-cd evals/olmes
-
-# Install with uv (recommended)
-export CC=gcc
-export CXX=g++
-uv sync
-uv sync --group gpu  # for GPU/vLLM support
-
-# Or install with pip
-pip install -e .
-pip install -e ".[gpu]"  # for GPU support
-```
-
-**Windows (PowerShell):**
-```powershell
-cd evals/olmes
-
-# Install with uv (recommended)
-$env:CC = "gcc"
-$env:CXX = "g++"
-uv sync
-uv sync --group gpu  # for GPU/vLLM support
-
-# Or install with pip
-pip install -e .
-pip install -e ".[gpu]"  # for GPU support
-```
-
-**Windows (Command Prompt):**
-```cmd
-cd evals\olmes
-
-# Install with uv (recommended)
-set CC=gcc
-set CXX=g++
-uv sync
-uv sync --group gpu
-
-# Or install with pip
-pip install -e .
-pip install -e ".[gpu]"
-```
-
-2. **Run evaluations:**
-You can decide to run your evaluations on Tinker or on OSC. If you decide to use Tinker for evaluation, you will be responsible to porting this code evaluation harness into Tinker for your usage.
-
-To this code on OSC, please replace `xxxx` in `run_eval.sh` with the correct project.
-
-Use the provided evaluation script:
-
-```bash
-cd ../
-bash run_eval.sh
-```
-
-Or run individual evaluations:
-
-```bash
-# GSM8K (Mathematical Reasoning)
-olmes --model <your-model-path> --task gsm8k --output-dir <output-dir>
-
-# IFEval (Instruction Following)
-olmes --model <your-model-path> --task ifeval --output-dir <output-dir>
-
-# MBPP (Code Generation)
-olmes --model <your-model-path> --task mbpp --output-dir <output-dir>
-
-# HarmBench (Safety Evaluation)
-olmes --model <your-model-path> --task harmbench::wildguard_reasoning_answer --output-dir <output-dir>
-```
-
-### Evaluation Output
-
-Each evaluation will produce:
-- `predictions.jsonl` - Model predictions for each task instance
-- `metrics.json` - Aggregated metrics and scores
-- Detailed logs and analysis
-
-## Submission Requirements
-
-You must submit the following:
-
-### 1. Prediction Files
-Submit the `predictions.jsonl` file for **each** evaluation task:
-- `gsm8k-predictions.jsonl`
-- `ifeval-predictions.jsonl`
-- `mbpp-predictions.jsonl`
-- `harmbench-predictions.jsonl`
-
-### 2. Final Model
-Submit your trained model checkpoint (or provide a link if hosted on HuggingFace Hub).
-
-### 3. Report
-Submit a written report documenting:
-- Your approach and methodology
-- Training details (hyperparameters, data used, compute resources)
-- Results and analysis
-- Ablation studies (if any)
-- Discussion of limitations and future work
-
-## Grading Criteria
-
-Your project will be graded on:
-1. **Implementation Quality** - Clean, well-documented code
-2. **Model Performance** - Scores on the evaluation benchmarks
-3. **Report Quality** - Clarity, completeness, and analysis depth
-4. **Innovation** - Creative approaches or improvements
-
-## Tips
-
-- Start with SFT as a baseline before trying more advanced methods
-- Monitor training loss and validation metrics carefully
-- Use smaller batch sizes with gradient accumulation if memory is limited
-- Test your evaluation pipeline early with a small model
-- Document your experiments thoroughly
-
-## Resources
-
-- [OLMES Documentation](https://github.com/allenai/olmes)
-- [Hugging Face Transformers](https://huggingface.co/docs/transformers)
-- [TRL (Transformer Reinforcement Learning)](https://huggingface.co/docs/trl)
-
-## Questions?
-
-If you have questions about the project, please:
-1. Post them on Teams/Carman
-2. Attend office hours
-3. Email the course TA (Abraham) or Instructor (Sachin)
-
-Good luck!
+Implement your preference optimization (e.g., DPO, IPO) in `train_pref.py`. This aligns the model using preference data.
