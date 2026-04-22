@@ -39,9 +39,8 @@ dataset_name=(
     "ifeval"
     "harmbench::default"
     "xstest::default"
-
 )
-model_path=/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-no-olmo-tablegpt
+model_path=//users/PAS2526/carterglazer/glazer77/CSE-5525-Final/sft-exploration1
 
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."

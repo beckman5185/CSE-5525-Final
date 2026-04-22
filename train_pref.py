@@ -15,6 +15,7 @@ from datetime import datetime
 
 from tinker_cookbook import checkpoint_utils, model_info
 from tinker_cookbook.preference import train_dpo
+import train_ipo
 from tinker_cookbook.supervised.train import run_evals
 from tinker_cookbook.supervised.types import ChatDatasetBuilder, SupervisedDataset, ChatDatasetBuilderCommonConfig
 from tinker_cookbook.tokenizer_utils import Tokenizer, get_tokenizer
@@ -83,6 +84,7 @@ class CLIConfig:
 
     max_steps: int | None = None
 
+    loss_type: str = "dpo"
 
 
 def get_dataset_builder(
@@ -139,38 +141,58 @@ class PREFTrainer:
     def train(self):
         #check that you have the right LORA rank
         logger.info(f"LORA rank: {self.training_args.lora_rank}")
+        logger.info(f"Loss type: {self.training_args.loss_type}")
 
-        #set up DPO config
-        config = train_dpo.Config(
-        log_path=self.log_path,
-        model_name=self.model,
-        renderer_name=self.renderer_name,
-        dataset_builder=get_dataset_builder(
-            self.training_args.dataset,
-            self.model,
-            self.renderer_name,
-            self.training_args.max_length,
-            self.training_args.batch_size,
-        ),
-        load_checkpoint_path=self.load_checkpoint_path,
-        evaluator_builders=[],
-        learning_rate=self.training_args.learning_rate,
-        lr_schedule=self.training_args.lr_schedule,
-        num_epochs=self.training_args.num_epochs,
-        dpo_beta=self.training_args.dpo_beta,
-        lora_rank=self.training_args.lora_rank,
-        base_url=self.training_args.base_url,
-        wandb_project=cli_config.wandb_project,
-        wandb_name=self.training_args.wandb_name,
-        reference_model_name=self.training_args.reference_model_name,
-        max_steps=self.training_args.max_steps
+        dataset_builder = get_dataset_builder(
+        self.training_args.dataset,
+        self.model,
+        self.renderer_name,
+        self.training_args.max_length,
+        self.training_args.batch_size,
         )
 
+        if self.training_args.loss_type == "ipo":
+            config = train_ipo.Config(
+                log_path=self.log_path,
+                model_name=self.model,
+                renderer_name=self.renderer_name,
+                dataset_builder=dataset_builder,
+                load_checkpoint_path=self.load_checkpoint_path,
+                evaluator_builders=[],
+                learning_rate=self.training_args.learning_rate,
+                lr_schedule=self.training_args.lr_schedule,
+                num_epochs=self.training_args.num_epochs,
+                ipo_beta=self.training_args.dpo_beta,  # reused as τ
+                lora_rank=self.training_args.lora_rank,
+                base_url=self.training_args.base_url,
+                wandb_project=self.training_args.wandb_project,
+                wandb_name=self.training_args.wandb_name,
+                reference_model_name=self.training_args.reference_model_name,
+                max_steps=self.training_args.max_steps,
+            )
 
-        #call training loop for DPO
-        train_dpo.main(config)
+            train_ipo.main(config)
 
-
+        elif self.training_args.loss_type == "dpo":
+            config = train_dpo.Config(
+                log_path=self.log_path,
+                model_name=self.model,
+                renderer_name=self.renderer_name,
+                dataset_builder=dataset_builder,
+                load_checkpoint_path=self.load_checkpoint_path,
+                evaluator_builders=[],
+                learning_rate=self.training_args.learning_rate,
+                lr_schedule=self.training_args.lr_schedule,
+                num_epochs=self.training_args.num_epochs,
+                dpo_beta=self.training_args.dpo_beta,
+                lora_rank=self.training_args.lora_rank,
+                base_url=self.training_args.base_url,
+                wandb_project=self.training_args.wandb_project,
+                wandb_name=self.training_args.wandb_name,
+                reference_model_name=self.training_args.reference_model_name,
+                max_steps=self.training_args.max_steps,
+            )
+            train_dpo.main(config)
 
 
 
@@ -230,11 +252,7 @@ def cli_main(cli_config: CLIConfig):
 
     #logging info about complete run
     logger.info(f"Model checkpoint saved to {log_path}")
-    logger.info("DPO training completed successfully")
-
-
-
-    
+    logger.info(f"{cli_config.loss_type.upper()} training completed successfully")
 
 
 if __name__ == "__main__":

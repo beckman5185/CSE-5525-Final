@@ -3,8 +3,8 @@ from peft import PeftModel
 
 # Set paths
 base_model_path = "meta-llama/Llama-3.2-1B"
-adapter_path = "43e592e2-9234-587d-a3c2-00682c4ee8ba:train:0_sampler_weights_final" 
-output_dir = "sft-no-olmo-tablegpt"
+adapter_path = "fa593af9-6853-5f14-bb48-183f20a99cb0:train:0_sampler_weights_final" 
+output_dir = "sft-exploration1"
 
 
 # Load base model and tokenizer

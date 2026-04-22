@@ -1,0 +1,68 @@
+_wandb:
+    value:
+        cli_version: 0.26.0
+        e:
+            g8msie3cljfqvxcxwpgzt4i6fc3309ev:
+                args:
+                    - lora_rank=32
+                    - num_epochs=1
+                    - max_steps=500
+                    - batch_size=256
+                    - save_every=40
+                    - learning_rate=1e-4
+                    - log_path=runs/sft-exploration1
+                    - wandb_project=CSE-5525-Final
+                codePath: train_sft.py
+                codePathLocal: train_sft.py
+                cpu_count: 96
+                cpu_count_logical: 96
+                disk:
+                    /:
+                        total: "204010946560"
+                        used: "43335548928"
+                email: glazer.77@buckeyemail.osu.edu
+                executable: /users/PAS2526/carterglazer/glazer77/CSE-5525-Final/.venv/bin/python
+                git:
+                    commit: fa88ddaad4cfc12fca5edd1136f0af9dd26af981
+                    remote: https://github.com/beckman5185/CSE-5525-Final.git
+                host: ascend-login01.hpc.osc.edu
+                memory:
+                    total: "1080836358144"
+                os: Linux-5.14.0-427.102.1.el9_4.x86_64-x86_64-with-glibc2.34
+                program: /users/PAS2526/carterglazer/glazer77/CSE-5525-Final/train_sft.py
+                python: CPython 3.12.4
+                root: /users/PAS2526/carterglazer/glazer77/CSE-5525-Final
+                startedAt: "2026-04-22T04:45:32.644745Z"
+                writerId: g8msie3cljfqvxcxwpgzt4i6fc3309ev
+        m: []
+        python_version: 3.12.4
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 51
+                - 53
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 51
+                - 53
+                - 71
+            "3":
+                - 16
+            "4": 3.12.4
+            "5": 0.26.0
+            "6": 5.3.0
+            "12": 0.26.0
+            "13": linux-x86_64
+batch_size:
+    value: 248
+learning_rate:
+    value: 1e-05
+steps:
+    value: 1500

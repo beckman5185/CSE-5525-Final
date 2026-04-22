@@ -1,0 +1,38 @@
+{
+  "os": "Linux-5.14.0-427.102.1.el9_4.x86_64-x86_64-with-glibc2.34",
+  "python": "CPython 3.12.4",
+  "startedAt": "2026-04-22T04:45:32.644745Z",
+  "args": [
+    "lora_rank=32",
+    "num_epochs=1",
+    "max_steps=500",
+    "batch_size=256",
+    "save_every=40",
+    "learning_rate=1e-4",
+    "log_path=runs/sft-exploration1",
+    "wandb_project=CSE-5525-Final"
+  ],
+  "program": "/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/train_sft.py",
+  "codePath": "train_sft.py",
+  "codePathLocal": "train_sft.py",
+  "git": {
+    "remote": "https://github.com/beckman5185/CSE-5525-Final.git",
+    "commit": "fa88ddaad4cfc12fca5edd1136f0af9dd26af981"
+  },
+  "email": "glazer.77@buckeyemail.osu.edu",
+  "root": "/users/PAS2526/carterglazer/glazer77/CSE-5525-Final",
+  "host": "ascend-login01.hpc.osc.edu",
+  "executable": "/users/PAS2526/carterglazer/glazer77/CSE-5525-Final/.venv/bin/python",
+  "cpu_count": 96,
+  "cpu_count_logical": 96,
+  "disk": {
+    "/": {
+      "total": "204010946560",
+      "used": "43335548928"
+    }
+  },
+  "memory": {
+    "total": "1080836358144"
+  },
+  "writerId": "g8msie3cljfqvxcxwpgzt4i6fc3309ev"
+}
