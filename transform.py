@@ -3,7 +3,7 @@ from peft import PeftModel
 
 # Set paths
 base_model_path = "meta-llama/Llama-3.2-1B"
-adapter_path = "fa593af9-6853-5f14-bb48-183f20a99cb0:train:0_sampler_weights_final" 
+adapter_path = "runs/sft-exploration1/fa593af9-6853-5f14-bb48-183f20a99cb0:train:0_sampler_weights_final" 
 output_dir = "sft-exploration1"
 
 
