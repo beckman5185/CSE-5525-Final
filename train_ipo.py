@@ -1,5 +1,5 @@
 """
-Implicit Preference Optimization (IPO) training
+Identity Preference Optimization (IPO) training
 """
 
 import asyncio
