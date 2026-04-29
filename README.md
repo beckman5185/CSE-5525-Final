@@ -22,8 +22,6 @@ LLMs are becoming increasingly important for the modern computer scientist to be
 ├── exploration1/             # All merged weights matrices and eval results for exploration 1 (data filtering)
 ├── exploration2/             # All merged weights matrices and eval results for exploration 2 (IPO)
 ├── tinker_downloads/         # All downloaded checkpoints weights used in evals
-├── configs/                  # Configuration files for training
-├── scripts/                  # Utility scripts
 └── evals/                    # Evaluation suite (OLMES)
    ├── run_eval.sh           # Script to run evaluations
    └── olmes/                # AI2's Open Language Model Evaluation System
@@ -45,6 +43,7 @@ source .venv/bin/activate
 
 ##### Install dependencies (adjust based on your requirements)
 uv pip install tinker
+pip install peft
 
 #### B. Set Tinker API key
 ```bash
@@ -82,21 +81,13 @@ Run evaluations according to olmes documentation provided!
 ### 1. Environment Setup
 
 #### A. Activate enviroment & setup
-
-##### Create and activate enviroment
-python -m venv .venv
-source .venv/bin/activate
-
-##### Install dependencies (adjust based on your requirements)
-uv pip install tinker
+Follow the same instructions from running SFT.
 
 #### B. Set Tinker API key
-```bash
-$env:TINKER_API_KEY="your_key_here"
-```
+Follow the same instructions from running SFT.
 
 #### C. Provide Path of SFT Run (Manually)
-This was not expected to change between runs, so has been hard-coded into the file. If you would like to run the preference optimization from a different SFT baseline than the rank 8 SFT, change line 256 in train_pref.py. 
+The path of the SFT baseline to start DPO from was not expected to change between runs, so has been hard-coded into the file. If you would like to run the preference optimization from a different SFT baseline than the rank 8 SFT, change line 256 in train_pref.py. 
 
 ```python
    sft_log_path = "runs/sft-rank8"
@@ -109,24 +100,7 @@ The parameters used for the one run of DPO are hard-coded in, but can be changed
 python train_pref.py
 ```
 ### 2. Testing
-#### A. Switch to OSC and Request GPU, Then Activate Environment
-Following guidelines on the official OSC website and earlier in this readme
-
-#### B. Download Tinker Weights
-```bash
-tinker checkpoint download tinker://d3b79b07-d58a-56f2-bc31-a78b6f6dde37:train:0/sampler_weights/final # Or whatever the path is to the sampler weights
-```
-#### C. Run transform.py
-First, change the arguments in the file to match the file you just created
-```bash
-python transform.py
-```
-
-#### D. Switch tokenizer_config.json tokenizer
-In file you just created, go to the tokenizer: line. Change this from TokenizerBackend to PreTrainedTokenizerFast.
-
-#### E. Run evaluations
-Run evaluations according to olmes documentation provided!
+Follow the same instructions from testing SFT. 
 
 
 ## How to Run Preference Optimization (IPO)
