@@ -100,10 +100,10 @@ This was not expected to change between runs, so has been hard-coded into the fi
 ```
 
 #### D. Run Training with Desired Parameters
-The parameters used for the one run of DPO are hard-coded in, but can be changed using the command line as desired (similarly to SFT).
+The parameters used for the one run of DPO are hard-coded in, but can be changed using the command line as desired (similarly to SFT). The loss type is assumed to be DPO. 
 
 ```bash
-python train_pref.py 
+python train_pref.py
 ```
 ### 2. Testing
 #### A. Switch to OSC and Request GPU, Then Activate Environment
