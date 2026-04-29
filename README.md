@@ -8,8 +8,17 @@ LLMs are becoming increasingly important for the modern computer scientist to be
 
 ```
 ├── README.md                 # This file
-├── train_sft.py              # Template for Supervised Fine-Tuning
-├── train_pref.py             # Template for Preference Optimization
+├── train_sft.py              # SFT implementation
+├── train_pref.py             # DPO implementation
+├── train_ipo.py              # IPO implementation
+├── train.py                  # Utility script for SFT
+├── chat_datasets.py          # Utility script for SFT, DPO, and IPO
+├── runs/                     # All outputs from train_sft.py and train_pref.py
+├── output/                   # All merged weights matrices and eval results for SFT
+├── dpo_output/               # All merged weights matrices and eval results for DPO (SFT rank 8 and DPO rank 8)
+├── exploration1/             # All merged weights matrices and eval results for exploration 1 (data filtering)
+├── exploration2/             # All merged weights matrices and eval results for exploration 2 (IPO)
+├── tinker_downloads/         # All downloaded checkpoints weights used in evals
 ├── configs/                  # Configuration files for training
 ├── scripts/                  # Utility scripts
 └── evals/                    # Evaluation suite (OLMES)
@@ -82,7 +91,15 @@ uv pip install tinker
 ```bash
 $env:TINKER_API_KEY="your_key_here"
 ```
-#### C. Run Training with Desired Parameters
+
+#### C. Provide Path of SFT Run (Manually)
+This was not expected to change between runs, so has been hard-coded into the file. If you would like to run the preference optimization from a different SFT baseline than the rank 8 SFT, change line 256 in train_pref.py. 
+
+```python
+   sft_log_path = "runs/sft-rank8"
+```
+
+#### D. Run Training with Desired Parameters
 The parameters used for the one run of DPO are hard-coded in, but can be changed using the command line as desired (similarly to SFT).
 
 ```bash
