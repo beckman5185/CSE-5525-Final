@@ -124,3 +124,11 @@ In file you just created, go to the tokenizer: line. Change this from TokenizerB
 
 #### E. Run evaluations
 Run evaluations according to olmes documentation provided!
+
+
+## How to Run Preference Optimization (IPO)
+To run IPO, follow the same instructions as DPO, but add a loss_type ipo command line argument when running train_pref.py
+
+```bash
+python train_pref.py. --loss_type ipo
+```
