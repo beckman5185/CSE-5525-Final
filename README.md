@@ -62,5 +62,48 @@ In file you just created, go to the tokenizer: line. Change this from TokenizerB
 #### 5. Run evaluations
 Run evaluations according to olmes documentation provided!
 
-#### Preference Optimization (PREF)
-Implement your preference optimization (e.g., DPO, IPO) in `train_pref.py`. This aligns the model using preference data.
+
+
+
+
+## How to Run Preference Optimization (DPO)
+### 1. Environment Setup
+
+#### A. Activate enviroment & setup
+
+##### Create and activate enviroment
+python -m venv .venv
+source .venv/bin/activate
+
+##### Install dependencies (adjust based on your requirements)
+uv pip install tinker
+
+#### B. Set Tinker API key
+```bash
+$env:TINKER_API_KEY="your_key_here"
+```
+#### C. Run Training with Desired Parameters
+The parameters used for the one run of DPO are hard-coded in, but can be changed using the command line as desired (similarly to SFT).
+
+```bash
+python train_pref.py 
+```
+### 2. Testing
+#### A. Switch to OSC and Request GPU, Then Activate Environment
+Following guidelines on the official OSC website and earlier in this readme
+
+#### B. Download Tinker Weights
+```bash
+tinker checkpoint download tinker://d3b79b07-d58a-56f2-bc31-a78b6f6dde37:train:0/sampler_weights/final # Or whatever the path is to the sampler weights
+```
+#### C. Run transform.py
+First, change the arguments in the file to match the file you just created
+```bash
+python transform.py
+```
+
+#### D. Switch tokenizer_config.json tokenizer
+In file you just created, go to the tokenizer: line. Change this from TokenizerBackend to PreTrainedTokenizerFast.
+
+#### E. Run evaluations
+Run evaluations according to olmes documentation provided!
