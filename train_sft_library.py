@@ -1,5 +1,5 @@
 """
-This module implements supervised fine-tuning (SFT) via tinker_cookbook's built-in train loop.
+This module implements supervised fine-tuning (SFT) via tinker_cookbook's built-in train loop. Most of this code is based on train.py
 """
 import asyncio
 from datetime import datetime
@@ -36,6 +36,7 @@ def main(cli_config: CLIConfig):
     )
 
     # Checks to see if we're resuming or not
+    # Built with the help of Copilot in order to make sure I'm actually resuming from something
     if cli_config.log_path is not None:
         log_path = cli_config.log_path
     else:
@@ -59,6 +60,7 @@ def main(cli_config: CLIConfig):
     wandb_name = cli_config.wandb_name or run_name
 
     # Builds the training config with all of the different parameters specified
+    # Checked with Copilot/inspired by train.py
     config = supervised_train.Config(
         log_path=log_path,
         model_name=cli_config.model_name,
