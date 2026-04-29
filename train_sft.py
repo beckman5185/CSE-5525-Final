@@ -128,7 +128,7 @@ class SFTTrainer:
                 weights = [d.loss_fn_inputs["weights"] for d in batch]
                 nll = compute_mean_nll(logprobs, weights)
 
-                # Calls update with tinker to update the model parameters based on the optim step
+                # Calls update with tinker to update the model parameters based on the optim step, autocompleted by Copilot
                 metrics.update(
                     {
                         "num_sequences": len(batch),
