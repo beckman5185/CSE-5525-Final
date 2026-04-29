@@ -46,10 +46,14 @@ from tinker_cookbook.weights._merge import merge_adapter_weights
 logger = logging.getLogger(__name__)
 
 
+#SOURCES: 
+
 #also referenced Katie's train_sft implementation
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/recipes/preference/dpo/train.py
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/preference/train_dpo.py
 #https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tutorials/407_rlhf_pipeline.py 
+
+
 
 @chz.chz
 class CLIConfig:
@@ -62,12 +66,12 @@ class CLIConfig:
     learning_rate: float = 1e-5
     lr_schedule: LRSchedule = "linear"
     dpo_beta: float = 0.1
-    max_length: int | None = 8192 #did not appear to speed up for 4096
-    batch_size: int = 128 #256
+    max_length: int | None = 8192
+    batch_size: int = 128
     num_epochs: int = 1
 
     # Model parameters
-    lora_rank: int = 4 #did not appear to speed up for 2
+    lora_rank: int = 4 #not used if SFT checkpoint used
 
     # Logging parameters
     log_path: str | None = None
@@ -78,7 +82,7 @@ class CLIConfig:
     base_url: str | None = None
 
     # DPO-specific parameters
-    reference_model_name: str | None = None #= "meta-llama/Llama-3.2-1B"
+    reference_model_name: str | None = None
 
     behavior_if_log_dir_exists: cli_utils.LogdirBehavior = "ask"
 
@@ -143,6 +147,7 @@ class PREFTrainer:
         logger.info(f"LORA rank: {self.training_args.lora_rank}")
         logger.info(f"Loss type: {self.training_args.loss_type}")
 
+        #get dataset builder
         dataset_builder = get_dataset_builder(
         self.training_args.dataset,
         self.model,
@@ -151,6 +156,7 @@ class PREFTrainer:
         self.training_args.batch_size,
         )
 
+        #do different config if loss type is ipo
         if self.training_args.loss_type == "ipo":
             config = train_ipo.Config(
                 log_path=self.log_path,
@@ -173,6 +179,7 @@ class PREFTrainer:
 
             train_ipo.main(config)
 
+        #otherwise do normal DPO setup
         elif self.training_args.loss_type == "dpo":
             config = train_dpo.Config(
                 log_path=self.log_path,
@@ -234,16 +241,15 @@ def cli_main(cli_config: CLIConfig):
 
 
     #get tokenizer
-    tokenizer = get_tokenizer(cli_config.model_name) #AutoTokenizer.from_pretrained(cli_config.model_name)
+    tokenizer = get_tokenizer(cli_config.model_name)
 
-    #not sure if this part is right. Datasets are different in this one
     #create datasets using builder
     dataset_builder = get_dataset_builder(cli_config.dataset, cli_config.model_name, 
                                           renderer_name, cli_config.max_length, cli_config.batch_size)
     train_dataset, val_dataset = dataset_builder()
 
     #hardcoding in the best one
-    sft_log_path = "runs/sft-1-whole-set"
+    sft_log_path = "runs/sft-rank8"
 
     #initialize trainer and train
     trainer = PREFTrainer(cli_config.model_name, tokenizer, train_dataset, val_dataset, cli_config, log_path, sft_log_path)
