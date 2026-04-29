@@ -1,0 +1,42 @@
+{
+  "log_path": "runs\\pref-meta-llama-Llama-3.2-1B-1e-05lr-128batch-2026-04-18-23-45",
+  "model_name": "meta-llama/Llama-3.2-1B",
+  "dataset_builder": {
+    "common_config": {
+      "model_name_for_tokenizer": "meta-llama/Llama-3.2-1B",
+      "renderer_name": "role_colon",
+      "max_length": 8192,
+      "batch_size": 128,
+      "train_on_what": null
+    },
+    "comparison_builder": {
+      "swap": false
+    }
+  },
+  "load_checkpoint_path": "tinker://0fc40909-d42a-55fd-b8d0-dd80ff4478bb:train:0/weights/final",
+  "renderer_name": "role_colon",
+  "learning_rate": 1e-05,
+  "lr_schedule": "linear",
+  "num_epochs": 1,
+  "dpo_beta": 0.1,
+  "lora_rank": 4,
+  "num_replicas": 8,
+  "base_url": null,
+  "evaluator_builders": [],
+  "infrequent_evaluator_builders": [],
+  "save_every": 20,
+  "eval_every": 10,
+  "infrequent_eval_every": 100,
+  "ttl_seconds": 604800,
+  "rolling_save_every": 0,
+  "rolling_ttl_seconds": 7200,
+  "adam_beta1": 0.9,
+  "adam_beta2": 0.95,
+  "adam_eps": 1e-08,
+  "wandb_project": null,
+  "wandb_name": null,
+  "enable_trace": false,
+  "span_chart_every": 0,
+  "reference_model_name": null,
+  "max_steps": null
+}
