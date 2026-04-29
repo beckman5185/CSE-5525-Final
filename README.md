@@ -45,7 +45,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 ##### Install dependencies (adjust based on your requirements)
-uv pip install tinker
+uv pip install tinker  
 pip install peft
 
 #### B. Set Tinker API key
