@@ -8,11 +8,14 @@ LLMs are becoming increasingly important for the modern computer scientist to be
 
 ```
 ├── README.md                 # This file
-├── train_sft.py              # SFT implementation
+├── train_sft.py              # SFT implementation (hand implemented)
+├── train_sft_library.py      # Version of SFT implementation - using Tinker cookbook
 ├── train_pref.py             # DPO implementation
 ├── train_ipo.py              # IPO implementation
 ├── train.py                  # Utility script for SFT
 ├── chat_datasets.py          # Utility script for SFT, DPO, and IPO
+├── plot_metrics.py           # Utility script for plotting DPO and IPO metrics
+├── transform.py              # Utility script for preparing model for evals
 ├── runs/                     # All outputs from train_sft.py and train_pref.py
 ├── output/                   # All merged weights matrices and eval results for SFT
 ├── dpo_output/               # All merged weights matrices and eval results for DPO (SFT rank 8 and DPO rank 8)
@@ -34,41 +37,41 @@ Llama-3.2-1B Model
 
 ### 1. Environment Setup
 
-#### 1. Activate enviroment & setup
+#### A. Activate enviroment & setup
 
-# Create and activate enviroment
+##### Create and activate enviroment
 python -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies (adjust based on your requirements)
+##### Install dependencies (adjust based on your requirements)
 uv pip install tinker
 
-#### 2. Set Tinker API key
+#### B. Set Tinker API key
 ```bash
 $env:TINKER_API_KEY="your_key_here"
 ```
-#### 3. Run Training with Desired Parameters
+#### C. Run Training with Desired Parameters
 ```bash
 python train_sft.py lora_rank=16 num_epochs=2 batch_size=256 save_every=200 learning_rate=3e-4 lr_schedule=cosine max_length=8096 log_path=runs/sft-2 wandb_project=CSE-5525-Final
 ```
 ### 2. Testing
-#### 1. Switch to OSC and Request GPU, Then Activate Environment
+#### A. Switch to OSC and Request GPU, Then Activate Environment
 Following guidelines on the official OSC website and earlier in this readme
 
-#### 2. Download Tinker Weights
+#### B. Download Tinker Weights
 ```bash
 tinker checkpoint download tinker://d3b79b07-d58a-56f2-bc31-a78b6f6dde37:train:0/sampler_weights/final # Or whatever the path is to the sampler weights
 ```
-#### 3. Run transform.py
+#### C. Run transform.py
 First, change the arguments in the file to match the file you just created
 ```bash
 python transform.py
 ```
 
-#### 4. Switch tokenizer_config.json tokenizer
+#### D. Switch tokenizer_config.json tokenizer
 In file you just created, go to the tokenizer: line. Change this from TokenizerBackend to PreTrainedTokenizerFast.
 
-#### 5. Run evaluations
+#### E. Run evaluations
 Run evaluations according to olmes documentation provided!
 
 
@@ -130,5 +133,5 @@ Run evaluations according to olmes documentation provided!
 To run IPO, follow the same instructions as DPO, but add a loss_type ipo command line argument when running train_pref.py
 
 ```bash
-python train_pref.py. --loss_type ipo
+python train_pref.py. loss_type=ipo
 ```
