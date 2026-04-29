@@ -41,7 +41,7 @@ Llama-3.2-1B Model
 #### A. Activate enviroment & setup
 
 ##### Create and activate enviroment
-python -m venv .venv
+python -m venv .venv  
 source .venv/bin/activate
 
 ##### Install dependencies (adjust based on your requirements)
@@ -75,8 +75,6 @@ In file you just created, go to the tokenizer: line. Change this from TokenizerB
 
 #### E. Run evaluations
 Run evaluations according to olmes documentation provided!
-
-
 
 
 
