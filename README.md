@@ -4,6 +4,9 @@
 ## Overview
 LLMs are becoming increasingly important for the modern computer scientist to be able to understand and use. To do this, it is imperative that we know how these models train and work internally - which is the aim of these assignments. Our goal for this project is to build a correct training pipeline by using a ˜1B parameter open LLM provided on Tinker.
 
+## Model Description
+For this model, the training data that we used was the default Tulu 3/OLMo 2 SFT Dataset for SFT and OLMo 2 1B Preference Dataset for DPO/IPO. As the DPO/IPO models were performed from an SFT baseline trained at rank 8, our best SFT model (at rank 16) is the most performant. This shows improvement from the baseline model in terms of instruction-following ability and complex tasks (such as code and math reasoning), but does not improve significantly in the area of safety. Despite the improvements made on the base model, the model remains somewhat limited. Its ability to correctly follow complex instructions or reason in complex ways remains limited (as demonstrated by the low benchmark scores), meaning that this model is more suited for use on simple tasks.
+
 ## Project Structure
 
 ```
